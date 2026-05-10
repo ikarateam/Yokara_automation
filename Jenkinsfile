@@ -809,6 +809,22 @@ EOF
                         reportBuildPolicy: 'ALWAYS',
                         results: [[path: 'allure-combined']]
                     ])
+
+                    catchError(buildResult: null, stageResult: 'SUCCESS', message: 'Slack notify failed') {
+                        withCredentials([usernamePassword(
+                            credentialsId: 'jenkins-allure-readonly',
+                            usernameVariable: 'JENKINS_USER',
+                            passwordVariable: 'JENKINS_PASS'
+                        )]) {
+                            sh """
+                                set +e
+                                ${env.PYTHON_BIN} scripts/notify_slack_failures.py \\
+                                    --build-url "${env.BUILD_URL}" \\
+                                    --build-number "${env.BUILD_NUMBER}"
+                                exit 0
+                            """
+                        }
+                    }
                 }
             }
         }
