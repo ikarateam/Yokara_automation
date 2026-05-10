@@ -14,17 +14,17 @@ pipeline {
     }
 
     environment {
-        USER_HOME = '/Users/quhuy'
-        ANDROID_HOME = '/Users/quhuy/Library/Android/sdk'
-        ANDROID_SDK_ROOT = '/Users/quhuy/Library/Android/sdk'
+        USER_HOME = '/Users/inmobi'
+        ANDROID_HOME = '/Users/inmobi/Library/Android/sdk'
+        ANDROID_SDK_ROOT = '/Users/inmobi/Library/Android/sdk'
 
-        NODE_BIN = '/Users/quhuy/.nvm/versions/node/v22.22.2/bin'
+        NODE_BIN = '/Users/inmobi/.nvm/versions/node/v26.0.0/bin'
         PYTHON_BIN = '/opt/homebrew/bin/python3'
         IDEVICE_ID_BIN = '/opt/homebrew/bin/idevice_id'
-        APPIUM_BIN = '/Users/quhuy/.nvm/versions/node/v22.22.2/bin/appium'
+        APPIUM_BIN = '/Users/inmobi/.nvm/versions/node/v26.0.0/bin/appium'
         ALLURE_BIN = '/opt/homebrew/bin/allure'
 
-        FULL_PATH = '/Users/quhuy/.local/bin:/opt/homebrew/bin:/usr/local/bin:/Users/quhuy/Library/Android/sdk/platform-tools:/Users/quhuy/Library/Android/sdk/emulator:/Users/quhuy/Library/Android/sdk/cmdline-tools/latest/bin:/bin:/usr/bin:/usr/sbin:/sbin:/Users/quhuy/.nvm/versions/node/v22.22.2/bin'
+        FULL_PATH = '/Users/inmobi/.local/bin:/opt/homebrew/bin:/usr/local/bin:/Users/inmobi/Library/Android/sdk/platform-tools:/Users/inmobi/Library/Android/sdk/emulator:/Users/inmobi/Library/Android/sdk/cmdline-tools/latest/bin:/bin:/usr/bin:/usr/sbin:/sbin:/Users/inmobi/.nvm/versions/node/v26.0.0/bin'
 
         APPIUM_BASE_PORT = '4700'
         IOS_WDA_BASE_PORT = '8100'
@@ -46,7 +46,7 @@ pipeline {
                     checkout scmGit(
                         branches: [[name: '*/main']],
                         extensions: [[$class: 'CloneOption', depth: 1, noTags: true, shallow: true]],
-                        userRemoteConfigs: [[url: 'https://github.com/ngocllb/Yokara']]
+                        userRemoteConfigs: [[url: 'https://github.com/ikarateam/Yokara_automation.git']]
                     )
                     stash name: 'repo-source', includes: '**/*', useDefaultExcludes: false
                 }
