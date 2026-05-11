@@ -349,6 +349,7 @@ public class BaseDriver {
     public void teardown() {
         try {
             if (driver != null) {
+                terminateAppQuietly();
                 driver.quit();
             }
         } catch (Exception e) {
@@ -357,6 +358,22 @@ public class BaseDriver {
             DRIVER.remove();
             driver = null;
             StepContext.clear();
+        }
+    }
+
+    /**
+     * Kill AUT trên thiết bị trước khi đóng session để mỗi test kết thúc về trạng thái sạch.
+     * Vì noReset=true, terminateApp không xóa data — chỉ đóng tiến trình app.
+     */
+    private void terminateAppQuietly() {
+        try {
+            String appId = primaryAppIdForPlatform();
+            if (appId == null) {
+                return;
+            }
+            ((InteractsWithApps) driver).terminateApp(appId);
+        } catch (Exception e) {
+            System.out.println("[BaseDriver] terminateApp khi teardown bỏ qua: " + e.getMessage());
         }
     }
 }
