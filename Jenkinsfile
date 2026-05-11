@@ -273,6 +273,23 @@ pipeline {
                     reportBuildPolicy: 'ALWAYS',
                     results: [[path: 'target/allure-results']]
                 ])
+
+                catchError(buildResult: null, stageResult: 'SUCCESS', message: 'Slack notify failed') {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'jenkins-allure-readonly',
+                        usernameVariable: 'JENKINS_USER',
+                        passwordVariable: 'JENKINS_PASS'
+                    )]) {
+                        sh '''
+                            set +e
+
+                            ${PYTHON_BIN} scripts/notify_slack_failures.py \
+                                --build-url "$BUILD_URL" \
+                                --build-number "$BUILD_NUMBER"
+                            exit 0
+                        '''
+                    }
+                }
             }
         }
     }
