@@ -19,7 +19,7 @@ pipeline {
         ANDROID_SDK_ROOT = '/Users/inmobi/Library/Android/sdk'
 
         NODE_BIN = '/Users/inmobi/.nvm/versions/node/v26.0.0/bin'
-        PYTHON_BIN = '/opt/homebrew/bin/python3'
+        PYTHON_BIN = '/usr/bin/python3'
         IDEVICE_ID_BIN = '/opt/homebrew/bin/idevice_id'
         APPIUM_BIN = '/Users/inmobi/.nvm/versions/node/v26.0.0/bin/appium'
         ALLURE_BIN = '/opt/homebrew/bin/allure'
