@@ -10,8 +10,11 @@ import java.nio.file.Paths;
 import java.util.List;
 
 /**
- * Sinh {@code target/testng-hc-box.xml}: một {@code &lt;test&gt;} / thiết bị, song song toàn bộ.
- * Chạy qua Maven exec (profile {@code hc-box}).
+ * Sinh {@code testng-multidevice.xml}: một {@code &lt;test&gt;} / thiết bị,
+ * song song toàn bộ;
+ * đồng thời ghi {@code target/appium-ports.txt} (mỗi dòng:
+ * {@code port&lt;TAB&gt;platform&lt;TAB&gt;udid}) để
+ * Jenkinsfile spawn 1 Appium server / device.
  */
 public final class GenerateHcBoxSuite {
 
@@ -26,18 +29,24 @@ public final class GenerateHcBoxSuite {
             return;
         }
 
-        Path out = Paths.get("target", "testng-hc-box.xml");
-        Files.createDirectories(out.getParent());
-        Files.writeString(out, buildXml(slots), StandardCharsets.UTF_8);
-        System.out.println("[GenerateHcBoxSuite] " + slots.size() + " thiết bị → " + out.toAbsolutePath());
+        Path suiteOut = Paths.get("testng-multidevice.xml");
+        Files.writeString(suiteOut, buildXml(slots), StandardCharsets.UTF_8);
+        System.out.println("[GenerateHcBoxSuite] " + slots.size() + " thiết bị → " + suiteOut.toAbsolutePath());
+
+        Path portsOut = Paths.get("target", "appium-ports.txt");
+        Files.createDirectories(portsOut.getParent());
+        Files.writeString(portsOut, buildPortsFile(slots), StandardCharsets.UTF_8);
+        System.out.println("[GenerateHcBoxSuite] ports → " + portsOut.toAbsolutePath());
     }
 
     private static String buildXml(List<AutomationDeviceSlot> slots) {
         int n = Math.max(slots.size(), 1);
         StringBuilder sb = new StringBuilder(8192);
         sb.append("<!DOCTYPE suite SYSTEM \"https://testng.org/testng-1.0.dtd\">\n");
-        sb.append("<!-- Auto-generated — mvn test -Phc-box — song song theo số thiết bị USB -->\n");
-        sb.append("<suite name=\"Yokara HC BOX (N thiết bị)\" parallel=\"tests\" thread-count=\"")
+        sb.append("<!-- Auto-generated bởi tools.GenerateHcBoxSuite (process-test-classes).\n");
+        sb.append("     KHÔNG sửa tay — sẽ bị overwrite mỗi lần `mvn test`.\n");
+        sb.append("     1 <test> / device USB được detect; không cắm device = không có block. -->\n");
+        sb.append("<suite name=\"Yokara Multi-Device\" parallel=\"tests\" thread-count=\"")
                 .append(n).append("\">\n\n");
         sb.append("    <!-- AllureTestNg: SPI allure-testng — tránh khai báo trùng trong suite -->\n");
         sb.append("    <listeners>\n");
@@ -46,19 +55,31 @@ public final class GenerateHcBoxSuite {
 
         for (AutomationDeviceSlot s : slots) {
             sb.append("    <test name=\"").append(escAttr(s.testNgTestName())).append("\">\n");
-            sb.append("        <parameter name=\"suitePlatform\" value=\"").append(escAttr(s.platform())).append("\"/>\n");
+            sb.append("        <parameter name=\"suitePlatform\" value=\"").append(escAttr(s.platform()))
+                    .append("\"/>\n");
             sb.append("        <parameter name=\"suiteUdid\" value=\"").append(escAttr(s.udid())).append("\"/>\n");
-            sb.append("        <parameter name=\"suiteDeviceLabel\" value=\"").append(escAttr(humanLabel(s))).append("\"/>\n");
-            sb.append("        <parameter name=\"suiteDeviceFolder\" value=\"").append(escAttr(s.reportFolderName())).append("\"/>\n");
+            sb.append("        <parameter name=\"suiteDeviceLabel\" value=\"").append(escAttr(humanLabel(s)))
+                    .append("\"/>\n");
+            sb.append("        <parameter name=\"suiteDeviceFolder\" value=\"").append(escAttr(s.reportFolderName()))
+                    .append("\"/>\n");
+            sb.append("        <parameter name=\"suiteAppiumPort\" value=\"").append(s.appiumPort()).append("\"/>\n");
             sb.append("        <classes>\n");
-            sb.append("            <class name=\"tests.NavigationTest\"/>\n");
-            sb.append("            <class name=\"tests.LoginMethodTest\"/>\n");
-            sb.append("            <class name=\"tests.RoomTest\"/>\n");
+            sb.append("            <class name=\"tests.ChiTietBaiTest\"/>\n");
             sb.append("        </classes>\n");
             sb.append("    </test>\n\n");
         }
 
         sb.append("</suite>\n");
+        return sb.toString();
+    }
+
+    private static String buildPortsFile(List<AutomationDeviceSlot> slots) {
+        StringBuilder sb = new StringBuilder(256);
+        for (AutomationDeviceSlot s : slots) {
+            sb.append(s.appiumPort()).append('\t')
+                    .append(s.platform()).append('\t')
+                    .append(s.udid()).append('\n');
+        }
         return sb.toString();
     }
 
