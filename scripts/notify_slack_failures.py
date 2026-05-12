@@ -67,7 +67,12 @@ def compute_stats(statuses):
 
 
 def build_message(total, passed, failed, skipped, build_number, allure_url):
-    header = f"{'🚨' if failed else '✅'} *Build #{build_number}*"
+    if total == 0:
+        header = f"⚠️ *Build #{build_number}*"
+    elif failed:
+        header = f"🚨 *Build #{build_number}*"
+    else:
+        header = f"✅ *Build #{build_number}*"
     return (
         f"{header}\n"
         f"📊 Tổng: {total}  |  ✅ Pass: {passed}  |  ❌ Fail: {failed}  |  ⏭️ Skip: {skipped}\n"
@@ -92,11 +97,6 @@ def main():
     ap.add_argument("--channel", default=os.environ.get("SLACK_CHANNEL", "C0B2EMXH70E"))
     ap.add_argument("--user", default=os.environ.get("JENKINS_USER", ""))
     ap.add_argument("--password", default=os.environ.get("JENKINS_PASS", ""))
-    ap.add_argument(
-        "--notify-on-pass",
-        action="store_true",
-        default=os.environ.get("SLACK_NOTIFY_ON_PASS", "").lower() in ("1", "true", "yes"),
-    )
     ap.add_argument("--dry-run", action="store_true", default=False,
                     help="Chỉ in message preview, không gọi Slack.")
     args = ap.parse_args()
@@ -118,18 +118,16 @@ def main():
 
     try:
         suites = http_get_json(suites_url, auth_header)
+        statuses = []
+        collect_leaves(suites, statuses)
+        total, passed, failed, skipped = compute_stats(statuses)
     except Exception as e:
-        print(f"[slack] không lấy được suites.json: {e}")
-        return 0
+        # Build có thể vỡ trước stage Allure → suites.json không tồn tại.
+        # Vẫn gửi notify (yêu cầu: lúc nào cũng gửi) với count = 0 + header ⚠️.
+        print(f"[slack] không lấy được suites.json: {e} — gửi fallback notify total=0.")
+        total, passed, failed, skipped = 0, 0, 0, 0
 
-    statuses = []
-    collect_leaves(suites, statuses)
-    total, passed, failed, skipped = compute_stats(statuses)
     print(f"[slack] stats total={total} pass={passed} fail={failed} skip={skipped}")
-
-    if failed == 0 and not args.notify_on_pass:
-        print("[slack] 0 test fail và notify-on-pass=off, bỏ qua.")
-        return 0
 
     message = build_message(total, passed, failed, skipped, args.build_number, allure_report_url)
     print("[slack] message preview:\n" + "-" * 60 + f"\n{message}\n" + "-" * 60)
