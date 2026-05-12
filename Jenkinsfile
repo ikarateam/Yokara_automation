@@ -152,15 +152,14 @@ pipeline {
                         PORT_STEP="${PORT_STEP:-10}"
                         PORT_RANGE_END=$((APPIUM_BASE_PORT + 20 * PORT_STEP))
 
-                        echo "===== CLEAN PORTS (Appium ${APPIUM_BASE_PORT}..${PORT_RANGE_END} + 4723 cũ) ====="
+                        echo "===== CLEAN PORTS (chỉ port Jenkins dùng ${APPIUM_BASE_PORT}..${PORT_RANGE_END}) ====="
+                        # Cố ý KHÔNG kill 4723 / pkill -f appium / pkill -f WebDriverAgent —
+                        # dev local có 1 Appium PM2 thường trực ở 4723, kill thô sẽ flap port + đứt session.
+                        # Jenkins range bắt đầu từ APPIUM_BASE_PORT (default 4700), không đụng 4723.
 
-                        lsof -ti tcp:4723 | xargs kill -9 2>/dev/null || true
                         for p in $(seq $APPIUM_BASE_PORT $PORT_STEP $PORT_RANGE_END); do
                           lsof -ti tcp:$p | xargs kill -9 2>/dev/null || true
                         done
-
-                        pkill -f appium || true
-                        pkill -f WebDriverAgent || true
 
                         echo "===== COMPILE + GENERATE SUITE (sinh testng-multidevice.xml + target/appium-ports.txt) ====="
 
@@ -295,10 +294,11 @@ pipeline {
                     export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
                     export PATH="$JAVA_HOME/bin:$PATH"
 
-                    echo "===== GLOBAL CLEANUP ====="
-
-                    pkill -f appium || true
-                    pkill -f WebDriverAgent || true
+                    echo "===== GLOBAL CLEANUP (chỉ port range Jenkins, không pkill thô) ====="
+                    # Không dùng pkill -f appium / WebDriverAgent — dev local có PM2 Appium 4723
+                    # và có thể đang chạy WDA tay; kill thô sẽ làm flap dịch vụ dev.
+                    # Port-loop dưới đây chỉ giết process listen ở range Jenkins (Appium 4700-4900,
+                    # WDA 8100-8300, MJPEG 10100-10300) — chính xác, không đụng dev.
 
                     for p in $(seq 4700 10 4900); do
                       lsof -ti tcp:$p | xargs kill -9 2>/dev/null || true

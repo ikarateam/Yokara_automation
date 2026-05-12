@@ -190,6 +190,30 @@
 
     <profiles>
         <!--
+          Local dev: dùng Appium PM2 thường trực ở 127.0.0.1:4723 (port mặc định Appium),
+          ghi đè port suite (GenerateHcBoxSuite mặc định 4700+).
+          Chạy: mvn test -Plocal
+          Lý do tồn tại: trên máy dev (cũng là máy Jenkins), Appium được PM2 quản lý ở 4723,
+          còn Jenkins build tự spawn server ở 4700+. Profile này tránh phải gõ
+          -DappiumServer=http://127.0.0.1:4723 mỗi lần chạy local.
+        -->
+        <profile>
+            <id>local</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables combine.children="append">
+                                <appiumServer>http://127.0.0.1:4723</appiumServer>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!--
           LoginMethodTest iOS + sinh Allure HTML + mở trình duyệt (macOS: open).
           Chạy: mvn verify -Ploginmethod-ios-allure -Dios.noReset=false
           Jenkins/headless: thêm -Dallure.open.skip=true
