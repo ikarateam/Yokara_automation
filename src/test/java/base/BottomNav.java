@@ -19,19 +19,27 @@ import utils.GestureUtils;
 import java.time.Duration;
 
 /**
- * Thanh điều hướng dưới — các tab có {@code content-desc} / {@code name} trùng chuỗi dùng chung
- * {@link AppiumBy#accessibilityId} (đối chiếu {@code XML android Screen locator/HatScr_android.txt} dòng tab bar).
- * <p>Riêng <strong>Hát</strong> và <strong>Tin nhắn</strong> (badge đổi số): Android không có desc cố định / chuỗi khác iOS → {@link #byPlatform}.</p>
+ * Thanh điều hướng dưới — các tab có {@code content-desc} / {@code name} trùng
+ * chuỗi dùng chung
+ * {@link AppiumBy#accessibilityId} (đối chiếu
+ * {@code XML android Screen locator/HatScr_android.txt} dòng tab bar).
+ * <p>
+ * Riêng <strong>Hát</strong> và <strong>Tin nhắn</strong> (badge đổi số):
+ * Android không có desc cố định / chuỗi khác iOS → {@link #byPlatform}.
+ * </p>
  */
 public class BottomNav extends BaseScr {
 
     private final By tabTrangChu = AppiumBy.accessibilityId("Trang chủ");
     private final By tabTrucTuyen = AppiumBy.accessibilityId("Trực tuyến");
-    private final By tabTrucTuyenAndroidByUiAutomator =
-            AppiumBy.androidUIAutomator("new UiSelector().description(\"Trực tuyến\")");
-    private final By tabTrucTuyenAndroidByXpath =
-            AppiumBy.xpath("//android.widget.ImageView[@content-desc='Trực tuyến']");
-    /** iOS: tùy build, Trang chủ / Trực tuyến có thể không phải XCUIElementTypeImage liền kề. */
+    private final By tabTrucTuyenAndroidByUiAutomator = AppiumBy
+            .androidUIAutomator("new UiSelector().description(\"Trực tuyến\")");
+    private final By tabTrucTuyenAndroidByXpath = AppiumBy
+            .xpath("//android.widget.ImageView[@content-desc='Trực tuyến']");
+    /**
+     * iOS: tùy build, Trang chủ / Trực tuyến có thể không phải XCUIElementTypeImage
+     * liền kề.
+     */
     private final By tabTrucTuyenIosFallback = AppiumBy.xpath(
             "//XCUIElementTypeImage[@name='Trang chủ']/following-sibling::XCUIElementTypeImage[1]");
     private final By tabTrucTuyenAfterTrangChuAny = AppiumBy.xpath(
@@ -39,7 +47,10 @@ public class BottomNav extends BaseScr {
     private final By tabHat;
     private final By tabTinNhan;
     private final By tabToi = AppiumBy.accessibilityId("Tôi");
-    /** iOS: cùng hàng tab với dump {@code scripts/xml_dumps/ios/ToiProfileScr_ios.xml} (Hát → Tin nhắn → Tôi). */
+    /**
+     * iOS: cùng hàng tab với dump
+     * {@code scripts/xml_dumps/ios/ToiProfileScr_ios.xml} (Hát → Tin nhắn → Tôi).
+     */
     private final By tabToiIosFallback = AppiumBy.xpath(
             "//XCUIElementTypeImage[@name='Trực tuyến']/following-sibling::XCUIElementTypeImage[3]");
 
@@ -71,12 +82,18 @@ public class BottomNav extends BaseScr {
                 "//XCUIElementTypeImage[@name='Trực tuyến']/following-sibling::*[2]");
     }
 
-    /** iOS: icon tab đôi khi {@code visible=false} nhưng vẫn tap — dùng presence + click. */
+    /**
+     * iOS: icon tab đôi khi {@code visible=false} nhưng vẫn tap — dùng presence +
+     * click.
+     */
     private void tapBottomTab(By tab) {
         if (driver instanceof IOSDriver) {
             // iOS: tap bằng presence và đợi transition
             wait.until(ExpectedConditions.presenceOfElementLocated(tab)).click();
-            try { Thread.sleep(500); } catch (InterruptedException ignored) {} // Minimal stable pause for iOS
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException ignored) {
+            } // Minimal stable pause for iOS
         } else {
             click(tab);
         }
@@ -87,7 +104,10 @@ public class BottomNav extends BaseScr {
         return new TrangChuScr(driver);
     }
 
-    /** Tab thứ 2 trên thanh dưới (≈ 20% chiều ngang màn) khi WDA không resolve accessibility. */
+    /**
+     * Tab thứ 2 trên thanh dưới (≈ 20% chiều ngang màn) khi WDA không resolve
+     * accessibility.
+     */
     private void tapIosApproxSecondBottomTab() {
         org.openqa.selenium.Dimension dim = driver.manage().window().getSize();
         int x = dim.getWidth() / 5;
@@ -161,8 +181,8 @@ public class BottomNav extends BaseScr {
             }
             tapIosTrucTuyenTabWithFallbacks();
             try {
-                new WebDriverWait(driver, Duration.ofSeconds(15)).until(d ->
-                        !d.findElements(AppiumBy.accessibilityId("Tạo phòng")).isEmpty()
+                new WebDriverWait(driver, Duration.ofSeconds(15))
+                        .until(d -> !d.findElements(AppiumBy.accessibilityId("Tạo phòng")).isEmpty()
                                 || !d.findElements(AppiumBy.accessibilityId("Đề cử")).isEmpty()
                                 || !d.findElements(AppiumBy.accessibilityId("Khám phá")).isEmpty());
             } catch (TimeoutException ignored) {

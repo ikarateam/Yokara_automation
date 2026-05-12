@@ -21,12 +21,16 @@ target/
 
 ### Allure & Jenkins local artifacts (sinh khi chạy test / pipeline) ###
 allure-results/
+allure-archive/
 allure-report/
 allure-results-by-device/
 allure-merge/
 allure-combined/
 allure-reports-by-device/
 device-dashboard/
+
+### testng-multidevice.xml: auto-generated bởi GenerateHcBoxSuite ###
+testng-multidevice.xml
 
 ### Secrets / test data cá nhân ###
 **/src/test/resources/testdata.local.properties

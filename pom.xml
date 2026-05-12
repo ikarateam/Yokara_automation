@@ -20,6 +20,10 @@
         <!-- Jenkins/CLI: -Dallure.results.directory=... phải override được (không hardcode trong surefire). -->
         <allure.results.directory>${project.basedir}/allure-results</allure.results.directory>
 
+        <!-- Timestamp cố định cho mỗi build — dùng để đặt tên thư mục archive allure-results -->
+        <maven.build.timestamp.format>yyyyMMdd-HHmmss</maven.build.timestamp.format>
+        <allure.archive.directory>${project.basedir}/allure-archive</allure.archive.directory>
+
     </properties>
 
     <dependencies>
@@ -48,6 +52,12 @@
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-testng</artifactId>
             <version>7.15.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.testng</groupId>
+                    <artifactId>testng</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- TestNG -->
@@ -93,6 +103,57 @@
                     <encoding>UTF-8</encoding>
                     <release>17</release>
                 </configuration>
+            </plugin>
+
+            <!-- Sinh testng-multidevice.xml động theo device USB đang cắm: 1 <test>/device,
+                 không có device = không có <test> block → Allure không hiện entry rỗng/null.
+                 Output overwrite testng-multidevice.xml ở root (đã .gitignore). -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>generate-multidevice-testng</id>
+                        <phase>process-test-classes</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>tools.GenerateHcBoxSuite</mainClass>
+                            <classpathScope>test</classpathScope>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Trước mỗi run: di chuyển allure-results cũ sang allure-archive/<timestamp>/
+                 → report mới chỉ chứa run hiện tại; muốn xem lại run cũ thì:
+                   allure serve allure-archive/<timestamp>
+                 (timestamp = thời điểm bắt đầu run kế tiếp, chính là thời điểm run cũ kết thúc).
+                 failonerror=false: không lỗi nếu allure-results chưa tồn tại (run đầu tiên). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>archive-allure-results-before-test</id>
+                        <phase>process-test-classes</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <move todir="${allure.archive.directory}/${maven.build.timestamp}"
+                                      failonerror="false">
+                                    <fileset dir="${allure.results.directory}"
+                                             erroronmissingdir="false"/>
+                                </move>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- Chạy TestNG theo testng.xml — ổn định trên Jenkins và local -->
@@ -260,44 +321,6 @@
                             <suiteXmlFiles>
                                 <suiteXmlFile>testng-ios-tab-screens.xml</suiteXmlFile>
                             </suiteXmlFiles>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <!-- HC BOX: tự phát hiện mọi Android+iOS USB → 1 &lt;test&gt;/thiết bị, song song; Allure label device -->
-        <profile>
-            <id>hc-box</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <version>3.2.0</version>
-                        <executions>
-                            <execution>
-                                <id>generate-hc-testng</id>
-                                <phase>process-test-classes</phase>
-                                <goals>
-                                    <goal>java</goal>
-                                </goals>
-                                <configuration>
-                                    <mainClass>tools.GenerateHcBoxSuite</mainClass>
-                                    <classpathScope>test</classpathScope>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <configuration>
-                            <suiteXmlFiles>
-                                <suiteXmlFile>${project.build.directory}/testng-hc-box.xml</suiteXmlFile>
-                            </suiteXmlFiles>
-                            <systemPropertyVariables>
-                                <allure.results.directory>${allure.results.directory}</allure.results.directory>
-                            </systemPropertyVariables>
                         </configuration>
                     </plugin>
                 </plugins>
