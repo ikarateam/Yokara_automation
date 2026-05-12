@@ -58,7 +58,10 @@ public class GestureUtils {
         driver.perform(Collections.singletonList(longPress));
     }
 
-    /** Tap một điểm theo tọa độ viewport (iOS/Android) — tránh {@code mobile: clickGesture} chỉ x,y khi server không hỗ trợ. */
+    /**
+     * Tap một điểm theo tọa độ viewport (iOS/Android) — tránh
+     * {@code mobile: clickGesture} chỉ x,y khi server không hỗ trợ.
+     */
     public static void tapViewport(AppiumDriver driver, int x, int y) {
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
         Sequence tap = new Sequence(finger, 1);
@@ -71,7 +74,8 @@ public class GestureUtils {
     }
 
     /**
-     * Tap tại tâm phần tử (W3C pointer) — iOS {@code StaticText} đôi khi không nhận {@code WebElement#click()}
+     * Tap tại tâm phần tử (W3C pointer) — iOS {@code StaticText} đôi khi không nhận
+     * {@code WebElement#click()}
      * nhưng vẫn nhận tap tọa độ.
      */
     public static void tapElementCenter(AppiumDriver driver, WebElement el) {
@@ -82,6 +86,29 @@ public class GestureUtils {
         x = Math.max(2, Math.min(x, win.getWidth() - 3));
         y = Math.max(2, Math.min(y, win.getHeight() - 3));
         tapViewport(driver, x, y);
+    }
+
+    /**
+     * Long press tại tâm phần tử (W3C pointer) — cross-platform iOS + Android,
+     * dùng khi cần trigger gesture giữ lâu (vd: mở popup chi tiết lượt like).
+     * {@code durationMs} = thời gian giữ ngón tay xuống (typical 600–1000ms).
+     */
+    public static void longPressElement(AppiumDriver driver, WebElement el, int durationMs) {
+        org.openqa.selenium.Rectangle r = el.getRect();
+        int x = r.getX() + Math.max(1, r.getWidth()) / 2;
+        int y = r.getY() + Math.max(1, r.getHeight()) / 2;
+        Dimension win = driver.manage().window().getSize();
+        x = Math.max(2, Math.min(x, win.getWidth() - 3));
+        y = Math.max(2, Math.min(y, win.getHeight() - 3));
+
+        PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+        Sequence seq = new Sequence(finger, 1);
+        seq.addAction(finger.createPointerMove(Duration.ZERO,
+                PointerInput.Origin.viewport(), x, y));
+        seq.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+        seq.addAction(new Pause(finger, Duration.ofMillis(durationMs)));
+        seq.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+        driver.perform(Collections.singletonList(seq));
     }
 
 }

@@ -17,7 +17,6 @@ public class ChiTietBaiTest extends BaseDriver {
                 BottomNav bottomNav = new BottomNav(driver);
                 TrangChuScr trangChuScr = new TrangChuScr(driver);
                 String content = "Nllb binh luan";
-                String suggestion = "Mến chào cs";
 
                 StepUtils.step("Xác nhận mở app",
                                 () -> Assert.assertTrue(trangChuScr.isLoaded(), "Không thấy tab Trang chủ"));
@@ -32,13 +31,27 @@ public class ChiTietBaiTest extends BaseDriver {
                                 () -> Assert.assertTrue(pbt.isCommentDisplayed(content),
                                                 "Không thấy bình luận '" + content + "' trong list"));
 
-                StepUtils.step("Gửi bình luận gợi ý hiển thị '" + suggestion + "'",
-                                () -> pbt.sendCommentWithSuggestion(suggestion));
-                StepUtils.step("Xác nhận bình luận'" + suggestion + "' đã hiển thị",
-                                () -> Assert.assertTrue(pbt.isCommentDisplayed(suggestion),
-                                                "Không thấy bình luận'" + suggestion + "' trong list"));
+                String suggestionSent = StepUtils.step("Gửi bình luận gợi ý đầu tiên",
+                                pbt::sendCommentWithFirstSuggestion);
+                StepUtils.step("Xác nhận đã gửi bình luận \"" + suggestionSent + "\"",
+                                () -> Assert.assertTrue(pbt.isCommentDisplayed(suggestionSent),
+                                                "Không thấy bình luận \"" + suggestionSent + "\" trong list"));
 
                 StepUtils.step("Trả lời bình luận của chính bản thân",
                                 () -> pbt.replyComment("Lê Minh Hô", "Nllb binh luan", "reply comment"));
+
+                String me = "Lê Minh Hô";
+
+                StepUtils.step("Like bình luận của bản thân '" + content + "'",
+                                () -> pbt.likeComment(me, content, 1));
+
+                StepUtils.step("Like thêm 2 lần",
+                                () -> pbt.likeComment(me, content, 2));
+
+                StepUtils.step("Mở chi tiết lượt like bằng hold vào nút like",
+                                () -> pbt.openLikeDetail(me, content));
+
+                StepUtils.step("Bỏ chọn like trong popup chi tiết",
+                                pbt::tapUnlikeInLikeDetail);
         }
 }

@@ -7,6 +7,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 
+import utils.GestureUtils;
 import utils.StepUtils;
 import utils.WaitUtils;
 
@@ -141,14 +142,58 @@ public class ChiTietBaiScr extends BaseScr {
      * name = value = label = text gợi ý. Dùng {@code @value} (thay vì acc-id) để
      * khớp đúng yêu cầu match theo value.
      *
-     * <p>Sau khi tap, input composer sẽ tự được fill bằng text này — không tự gửi.
+     * <p>
+     * Sau khi tap, input composer sẽ tự được fill bằng text này — không tự gửi.
      */
     public void selectRecommendMessage(String value) {
         select(AppiumBy.xpath(
                 "//XCUIElementTypeStaticText[@value=" + xQuote(value) + "]"));
     }
 
-    
+    /**
+     * Locator gợi ý đầu tiên trong composer.
+     *
+     * <p>Cấu trúc DOM (dump scripts/xml_dumps/ios/fail_page.xml line 352-376):
+     * <pre>
+     * Other (composer outer wrapper, parent TextField)
+     *   ├─ Other (invisible)
+     *   ├─ Other (suggestion bar wrapper)         ← chứa 16 StaticText
+     *   │     ├─ ScrollView
+     *   │     ├─ StaticText[1]  ← gợi ý đầu tiên (leftmost)
+     *   │     └─ ... 16 StaticText
+     *   ├─ Image
+     *   ├─ TextField "Nói gì đi nào!"             ← anchor
+     *   └─ Image
+     * </pre>
+     *
+     * <p>StaticText gợi ý là <em>cháu</em> (không phải con trực tiếp) của parent
+     * TextField → phải đi qua thêm 1 cấp {@code XCUIElementTypeOther}. XPath chỉ
+     * dùng child axis + {@code [1]} (XPath 1.0 cơ bản, WDA xử lý ổn định).
+     *
+     * <p>App random thứ tự gợi ý mỗi lần mở composer → text trả về khác nhau
+     * giữa các lần chạy. Caller phải đọc runtime, không hardcode.
+     */
+    private final By firstSuggestion = AppiumBy.xpath(
+            "//XCUIElementTypeTextField[@name='Nói gì đi nào!']"
+                    + "/../XCUIElementTypeOther/XCUIElementTypeStaticText[1]");
+
+    /**
+     * Đọc text của gợi ý đầu tiên trong composer. Yêu cầu composer đã mở.
+     * Throw nếu không đọc được name/label (vd: khung gợi ý chưa render xong).
+     */
+    public String readFirstSuggestionText() {
+        WebElement el = WaitUtils.waitForVisible(driver, firstSuggestion);
+        String text = el.getAttribute("name");
+        if (text == null || text.isBlank()) {
+            text = el.getAttribute("label");
+        }
+        if (text == null || text.isBlank()) {
+            throw new RuntimeException(
+                    "[ChiTietBaiScr] Không đọc được text gợi ý đầu tiên (name + label đều rỗng).");
+        }
+        return text;
+    }
+
     /** Tap nút gửi cạnh input. */
     public void tapSend() {
         click(btnSend);
@@ -162,14 +207,21 @@ public class ChiTietBaiScr extends BaseScr {
     }
 
     /**
-     * Flow TC2: mở composer → gõ {@code typing} → chọn suggestion (overwrite input)
-     * → gửi. Comment thực gửi đi sẽ có nội dung = {@code suggestion}.
+     * Flow TC2: mở composer → đọc gợi ý đầu tiên (app trả random nên không
+     * hardcode)
+     * → tap suggestion → gửi.
+     *
+     * @return text của gợi ý đã gửi để caller assert
+     *         {@code isCommentDisplayed(...)}.
      */
-    public void sendCommentWithSuggestion(String suggestion) {
+    public String sendCommentWithFirstSuggestion() {
         StepUtils.step("Chọn Bình luận", this::openComposer);
-        StepUtils.step("Chọn Bình luận gợi ý '" + suggestion + "'",
-                () -> selectRecommendMessage(suggestion));
+        String picked = StepUtils.step("Đọc gợi ý đầu tiên",
+                this::readFirstSuggestionText);
+        StepUtils.step("Chọn Bình luận gợi ý '" + picked + "'",
+                () -> selectRecommendMessage(picked));
         StepUtils.step("Bấm gửi", this::tapSend);
+        return picked;
     }
 
     /**
@@ -315,7 +367,8 @@ public class ChiTietBaiScr extends BaseScr {
     /**
      * Nhập nội dung reply vào input và gửi.
      *
-     * <p>Sau khi tap "Trả lời" của 1 comment, iOS render input là
+     * <p>
+     * Sau khi tap "Trả lời" của 1 comment, iOS render input là
      * {@code XCUIElementTypeTextField} có {@code name="Trả lời @<repliedUser>"}.
      * Nút gửi tái dùng {@link #btnSend} (sibling Image kế TextField — chỉ có 1
      * TextField trên màn lúc reply mode mở).
@@ -331,27 +384,73 @@ public class ChiTietBaiScr extends BaseScr {
     /**
      * Like comment xác định bởi ({@code user} + {@code content}) {@code times} lần.
      *
-     * <p>Trong dump iOS, mỗi cell comment có 2 Image direct child: index=1 là avatar,
+     * <p>
+     * Trong dump iOS, mỗi cell comment có 2 Image direct child: index=1 là avatar,
      * index=2 là nút like (không có acc-id). Locate cell theo cùng pattern
      * {@link #replyComment} (acc-id content + StaticText user + child trực tiếp
      * "Trả lời") rồi chọn {@code XCUIElementTypeImage[last()]} = nút like.
      *
-     * <p>Dùng {@link #select} thay vì {@code click} vì Image iOS thường không pass
+     * <p>
+     * Dùng {@link #select} thay vì {@code click} vì Image iOS thường không pass
      * {@code elementToBeClickable} của WDA.
      */
     public void likeComment(String user, String content, int times) {
-        String likeXpath = "//XCUIElementTypeOther[" +
-                ".//*[@name=" + xQuote(content) + "]" +
-                " and .//XCUIElementTypeStaticText[@name=" + xQuote(user) + "]" +
-                " and ./XCUIElementTypeStaticText[@name='Trả lời']" +
-                "]/XCUIElementTypeImage[last()]";
-        By likeBtn = AppiumBy.xpath(likeXpath);
+        By likeBtn = AppiumBy.xpath(commentLikeButtonXpath(user, content));
 
         StepUtils.step("Like comment '" + content + "' của " + user + " x" + times, () -> {
             for (int i = 0; i < times; i++) {
                 select(likeBtn);
             }
         });
+    }
+
+    /**
+     * Mở popup chi tiết lượt like của comment xác định ({@code user} +
+     * {@code content})
+     * bằng long-press lên đúng nút like — cùng locator như {@link #likeComment}
+     * nhưng
+     * thay tap bằng W3C pointer long press (~800ms).
+     *
+     * <p>
+     * Sau gesture, popup hiện header "Tất cả N" + list user đã like (dump
+     * {@code scripts/xml_dumps/ios/tc1_2.xml}). Method block chờ header visible
+     * trước khi return để các bước sau (vd: {@link #tapUnlikeInLikeDetail}) chạy
+     * ổn định.
+     */
+    public void openLikeDetail(String user, String content) {
+        By likeBtn = AppiumBy.xpath(commentLikeButtonXpath(user, content));
+
+        StepUtils.step("Mở chi tiết lượt like của '" + content + "' của " + user, () -> {
+            WebElement btn = WaitUtils.waitForVisible(driver, likeBtn);
+            GestureUtils.longPressElement(driver, btn, 800);
+            WaitUtils.waitForVisible(driver, lblLikeDetailHeader);
+        });
+    }
+
+    /** Header popup chi tiết lượt like: "Tất cả N" (N thay đổi theo số like). */
+    private final By lblLikeDetailHeader = AppiumBy.xpath(
+            "//XCUIElementTypeStaticText[starts-with(@name,'Tất cả ')]");
+
+    /**
+     * Nút bỏ like trong popup chi tiết: Image sibling kế header "Tất cả N"
+     * (dump tc1_2.xml: cùng parent, x=378 vs StaticText x=16). Không có acc-id
+     * nên locate qua following-sibling thay vì xpath theo cấu trúc cố định.
+     */
+    private final By btnUnlikeInLikeDetail = AppiumBy.xpath(
+            "//XCUIElementTypeStaticText[starts-with(@name,'Tất cả ')]"
+                    + "/following-sibling::XCUIElementTypeImage[1]");
+
+    /** Tap Image bỏ like trong popup chi tiết. Yêu cầu popup đã mở. */
+    public void tapUnlikeInLikeDetail() {
+        select(btnUnlikeInLikeDetail);
+    }
+
+    private static String commentLikeButtonXpath(String user, String content) {
+        return "//XCUIElementTypeOther[" +
+                ".//*[@name=" + xQuote(content) + "]" +
+                " and .//XCUIElementTypeStaticText[@name=" + xQuote(user) + "]" +
+                " and ./XCUIElementTypeStaticText[@name='Trả lời']" +
+                "]/XCUIElementTypeImage[last()]";
     }
 
     /**
