@@ -33,11 +33,12 @@ public class BaseDriver {
     protected AuthFlow auth;
 
     @BeforeMethod(alwaysRun = true)
-    @Parameters({"suitePlatform", "suiteUdid", "suiteDeviceLabel", "suiteDeviceFolder"})
+    @Parameters({"suitePlatform", "suiteUdid", "suiteDeviceLabel", "suiteDeviceFolder", "suiteAppiumPort"})
     public void setup(@Optional String suitePlatform,
                       @Optional String suiteUdid,
                       @Optional String suiteDeviceLabel,
-                      @Optional String suiteDeviceFolder) {
+                      @Optional String suiteDeviceFolder,
+                      @Optional String suiteAppiumPort) {
 
         String runPlatform = normalizePlatform(System.getProperty("platform"));
         String runAndroidUdid = normalizeRaw(System.getProperty("android.udid"));
@@ -89,10 +90,12 @@ public class BaseDriver {
             throw new SkipException("[Skip] Platform không hợp lệ: " + requestedPlatform);
         }
 
+        String suiteServerUrl = buildSuiteAppiumUrl(suiteAppiumPort);
+
         try {
-            driver = DriverFactory.createDriver(requestedPlatform, requestedUdid);
+            driver = DriverFactory.createDriver(requestedPlatform, requestedUdid, suiteServerUrl);
             DRIVER.set(driver);
-            attachAllureDeviceLabels(requestedPlatform, requestedUdid);
+            attachAllureDeviceLabels(requestedPlatform, requestedUdid, suiteAppiumPort);
         } catch (RuntimeException e) {
             String msg = e.getMessage() != null ? e.getMessage() : "";
             if (msg.contains("Không tìm thấy thiết bị") || msg.contains("unknown")) {
@@ -260,7 +263,27 @@ public class BaseDriver {
         }
     }
 
-    private void attachAllureDeviceLabels(String requestedPlatform, String requestedUdid) {
+    /**
+     * Build URL Appium server từ {@code suiteAppiumPort} (mô hình 1 server / device).
+     * Null nếu không có port → DriverFactory sẽ fallback theo thứ tự ưu tiên (CLI -DappiumServer → config).
+     */
+    private String buildSuiteAppiumUrl(String suiteAppiumPort) {
+        String port = normalizeRaw(suiteAppiumPort);
+        if (port == null) {
+            return null;
+        }
+        try {
+            int p = Integer.parseInt(port);
+            if (p <= 0) {
+                return null;
+            }
+            return "http://127.0.0.1:" + p;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private void attachAllureDeviceLabels(String requestedPlatform, String requestedUdid, String suiteAppiumPort) {
         try {
             String platform = normalizePlatform(firstNonBlank(requestedPlatform, System.getProperty("platform")));
             if (platform == null) {
@@ -279,6 +302,7 @@ public class BaseDriver {
             String shortUdid = udid == null ? "unknown" : (udid.length() > 8 ? udid.substring(udid.length() - 8) : udid);
             String branchName = firstNonBlank(System.getProperty("jenkins.branchName"), platform + "-" + shortUdid);
             String appiumPort = firstNonBlank(
+                    normalizeRaw(suiteAppiumPort),
                     normalizeRaw(System.getProperty("jenkins.appiumPort")),
                     parsePortFromUrl(System.getProperty("appiumServer")),
                     "unknown"

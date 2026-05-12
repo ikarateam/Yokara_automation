@@ -107,13 +107,23 @@ public final class DeviceManager {
 
     /**
      * Danh sách thiết bị thật để chạy song song (HC BOX): mỗi Android + mỗi iOS USB là một slot.
+     *
+     * <p>Mỗi slot được gán một port Appium riêng theo {@code base + index * step}, để
+     * Jenkinsfile spawn 1 Appium server per device → cô lập flaky / log riêng.
+     * Base/step có thể override qua {@code -Dappium.basePort} / {@code -Dappium.portStep}
+     * (mặc định 4700 / 10, khớp env Jenkinsfile).</p>
      */
     public static List<AutomationDeviceSlot> listAutomationSlots() {
+        int basePort = parsePositiveInt(System.getProperty("appium.basePort"), 4700);
+        int portStep = parsePositiveInt(System.getProperty("appium.portStep"), 10);
+
         List<AutomationDeviceSlot> out = new ArrayList<>();
+        int idx = 0;
         for (String udid : getAndroidPhysicalDevices()) {
             String model = queryAndroidProductModel(udid);
             String folder = sanitizeReportFolder("android_" + model + "_" + shortUdid(udid));
-            out.add(new AutomationDeviceSlot("android", udid, model, folder));
+            out.add(new AutomationDeviceSlot("android", udid, model, folder, basePort + idx * portStep));
+            idx++;
         }
         for (String udid : getPhysicalIosUdids()) {
             String name = IosDeviceInfo.queryDeviceName(udid);
@@ -123,9 +133,22 @@ public final class DeviceManager {
                 name = name.trim();
             }
             String folder = sanitizeReportFolder("ios_" + name + "_" + shortUdid(udid));
-            out.add(new AutomationDeviceSlot("ios", udid, name, folder));
+            out.add(new AutomationDeviceSlot("ios", udid, name, folder, basePort + idx * portStep));
+            idx++;
         }
         return out;
+    }
+
+    private static int parsePositiveInt(String raw, int defaultValue) {
+        if (raw == null || raw.isBlank()) {
+            return defaultValue;
+        }
+        try {
+            int v = Integer.parseInt(raw.trim());
+            return v > 0 ? v : defaultValue;
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
     }
 
     private static String queryAndroidProductModel(String udid) {

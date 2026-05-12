@@ -21,16 +21,28 @@ import java.time.Duration;
 public class DriverFactory {
 
     public static AppiumDriver createDriver() {
-        return createDriver(null, null);
+        return createDriver(null, null, null);
+    }
+
+    public static AppiumDriver createDriver(String platformParam, String udidParam) {
+        return createDriver(platformParam, udidParam, null);
     }
 
     /**
-     * Khởi tạo driver với platform và UDID tùy chọn (phục vụ parallel/multi-device).
+     * Khởi tạo driver với platform, UDID, và URL Appium server tùy chọn (phục vụ parallel/multi-device).
+     *
+     * <p>Thứ tự ưu tiên URL server:
+     * <ol>
+     *   <li>{@code -DappiumServer} (CLI override, cao nhất)</li>
+     *   <li>{@code serverUrlParam} (từ suite param {@code suiteAppiumPort}, mô hình 1 server / device)</li>
+     *   <li>{@code appiumServer} trong config.properties (fallback local)</li>
+     * </ol>
      */
-    public static AppiumDriver createDriver(String platformParam, String udidParam) {
+    public static AppiumDriver createDriver(String platformParam, String udidParam, String serverUrlParam) {
         try {
             String server = firstNonBlank(
                     System.getProperty("appiumServer"),
+                    serverUrlParam,
                     ConfigManager.get("appiumServer"),
                     ConfigManager.getRequired("appiumServer")
             );

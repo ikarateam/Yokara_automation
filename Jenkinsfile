@@ -148,42 +148,88 @@ pipeline {
                         export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
                         export PATH="$JAVA_HOME/bin:$PATH"
 
-                        echo "===== CLEAN PORTS ====="
+                        APPIUM_BASE_PORT="${APPIUM_BASE_PORT:-4700}"
+                        PORT_STEP="${PORT_STEP:-10}"
+                        PORT_RANGE_END=$((APPIUM_BASE_PORT + 20 * PORT_STEP))
+
+                        echo "===== CLEAN PORTS (Appium ${APPIUM_BASE_PORT}..${PORT_RANGE_END} + 4723 cũ) ====="
 
                         lsof -ti tcp:4723 | xargs kill -9 2>/dev/null || true
-                        lsof -ti tcp:8100 | xargs kill -9 2>/dev/null || true
-                        lsof -ti tcp:10100 | xargs kill -9 2>/dev/null || true
+                        for p in $(seq $APPIUM_BASE_PORT $PORT_STEP $PORT_RANGE_END); do
+                          lsof -ti tcp:$p | xargs kill -9 2>/dev/null || true
+                        done
 
                         pkill -f appium || true
                         pkill -f WebDriverAgent || true
 
-                        echo "===== START APPIUM ====="
+                        echo "===== COMPILE + GENERATE SUITE (sinh testng-multidevice.xml + target/appium-ports.txt) ====="
 
-                        nohup appium \
-                          --address 127.0.0.1 \
-                          --port 4723 \
-                          --log-level info \
-                          > appium.log 2>&1 &
+                        mvn -q clean process-test-classes \
+                          -Dappium.basePort=$APPIUM_BASE_PORT \
+                          -Dappium.portStep=$PORT_STEP
 
-                        APPIUM_PID=$!
+                        GEN_EXIT=$?
+                        if [ $GEN_EXIT -ne 0 ] || [ ! -f target/appium-ports.txt ]; then
+                          echo "[Run Tests] Không sinh được target/appium-ports.txt (exit=$GEN_EXIT). Có thiết bị nào cắm không?"
+                          adb devices || true
+                          idevice_id -l || true
+                          exit ${GEN_EXIT:-1}
+                        fi
 
-                        echo "Appium PID=$APPIUM_PID"
+                        echo "===== DEVICE → APPIUM PORT MAP ====="
+                        cat target/appium-ports.txt
 
-                        echo "===== WAIT APPIUM ====="
+                        echo "===== SPAWN APPIUM (1 server / device) ====="
 
-                        for i in $(seq 1 40); do
-                          if curl -sf http://127.0.0.1:4723/status >/dev/null 2>&1; then
-                            echo "Appium Ready"
-                            break
+                        APPIUM_PIDS=""
+                        mkdir -p target/appium-logs
+                        while IFS=$'\\t' read -r PORT PLATFORM UDID; do
+                          [ -z "$PORT" ] && continue
+                          SHORT_UDID=$(echo "$UDID" | tail -c 13)
+                          LOG="target/appium-logs/appium-${PORT}-${SHORT_UDID}.log"
+                          echo "  → port=$PORT  platform=$PLATFORM  udid=$UDID  log=$LOG"
+                          nohup appium \
+                            --address 127.0.0.1 \
+                            --port "$PORT" \
+                            --log-level info \
+                            > "$LOG" 2>&1 &
+                          APPIUM_PIDS="$APPIUM_PIDS $!"
+                        done < target/appium-ports.txt
+
+                        echo "Appium PIDs:$APPIUM_PIDS"
+
+                        echo "===== WAIT APPIUM READY ====="
+
+                        ALL_READY=1
+                        while IFS=$'\\t' read -r PORT _ _; do
+                          [ -z "$PORT" ] && continue
+                          READY=0
+                          for i in $(seq 1 40); do
+                            if curl -sf "http://127.0.0.1:${PORT}/status" >/dev/null 2>&1; then
+                              echo "  ✓ Appium :$PORT ready"
+                              READY=1
+                              break
+                            fi
+                            sleep 1
+                          done
+                          if [ $READY -ne 1 ]; then
+                            echo "  ✗ Appium :$PORT KHÔNG ready sau 40s"
+                            ALL_READY=0
                           fi
-                          sleep 1
-                        done
+                        done < target/appium-ports.txt
 
-                        echo "===== RUN MAVEN ====="
+                        if [ $ALL_READY -ne 1 ]; then
+                          echo "[Run Tests] Một số Appium server không sẵn sàng — abort."
+                          for pid in $APPIUM_PIDS; do kill $pid 2>/dev/null || true; done
+                          exit 1
+                        fi
 
-                        mvn clean test \
+                        echo "===== RUN MAVEN (surefire only — KHÔNG truyền -DappiumServer để suiteAppiumPort có hiệu lực) ====="
+
+                        mvn surefire:test \
                           -DsuiteXmlFile=testng-multidevice.xml \
-                          -DappiumServer=http://127.0.0.1:4723
+                          -Dappium.basePort=$APPIUM_BASE_PORT \
+                          -Dappium.portStep=$PORT_STEP
 
                         TEST_EXIT=$?
 
@@ -191,8 +237,9 @@ pipeline {
                         echo $TEST_EXIT
 
                         echo "===== STOP APPIUM ====="
-
-                        kill $APPIUM_PID || true
+                        for pid in $APPIUM_PIDS; do
+                          kill $pid 2>/dev/null || true
+                        done
 
                         exit $TEST_EXIT
                     '''
