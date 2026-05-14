@@ -10,6 +10,7 @@ public class AllureDeviceLabels {
     public static void attach(
             String branchName,
             String platform,
+            String deviceName,
             String udid,
             String appiumPort,
             String extraPort1,
@@ -21,6 +22,9 @@ public class AllureDeviceLabels {
 
         Allure.label("device.branch", branchName);
         Allure.label("device.platform", platform);
+        if (deviceName != null && !deviceName.isEmpty()) {
+            Allure.label("device.name", deviceName);
+        }
         Allure.label("device.udid", udid);
         Allure.label("device.appiumPort", appiumPort);
 

@@ -323,6 +323,10 @@ public class BaseDriver {
                     parsePortFromUrl(System.getProperty("appiumServer")),
                     "unknown"
             );
+            // Đọc tên thiết bị từ capabilities sau khi session khởi tạo — iOS dùng
+            // `appium:deviceName` (XCUITest set từ IosDeviceInfo.queryDeviceName),
+            // Android dùng `appium:deviceModel` (UiAutomator2 tự populate khi probe).
+            String deviceName = readDeviceCap(platform);
 
             if ("ios".equals(platform)) {
                 String wdaLocalPort = firstNonBlank(
@@ -335,18 +339,41 @@ public class BaseDriver {
                         normalizeRaw(System.getProperty("ios.mjpegServerPort")),
                         ""
                 );
-                AllureDeviceLabels.attach(branchName, "ios", safe(udid), appiumPort, wdaLocalPort, mjpegServerPort);
+                AllureDeviceLabels.attach(branchName, "ios", deviceName, safe(udid), appiumPort, wdaLocalPort, mjpegServerPort);
             } else {
                 String systemPort = firstNonBlank(
                         normalizeRaw(System.getProperty("jenkins.systemPort")),
                         normalizeRaw(System.getProperty("android.systemPort")),
                         ""
                 );
-                AllureDeviceLabels.attach(branchName, "android", safe(udid), appiumPort, systemPort, "");
+                AllureDeviceLabels.attach(branchName, "android", deviceName, safe(udid), appiumPort, systemPort, "");
             }
         } catch (Exception e) {
             System.out.println("[BaseDriver] attachAllureDeviceLabels failed: " + e.getMessage());
         }
+    }
+
+    /**
+     * Đọc tên thiết bị từ capability driver (iOS: deviceName, Android: deviceModel).
+     * Trả null nếu driver chưa init hoặc capability không có.
+     */
+    private String readDeviceCap(String platform) {
+        if (driver == null) {
+            return null;
+        }
+        try {
+            String[] keys = "ios".equals(platform)
+                    ? new String[]{"appium:deviceName", "appium:deviceModel"}
+                    : new String[]{"appium:deviceModel", "appium:deviceName"};
+            for (String k : keys) {
+                Object v = driver.getCapabilities().getCapability(k);
+                if (v != null && !v.toString().isBlank()) {
+                    return v.toString();
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     private String parsePortFromUrl(String appiumServer) {
