@@ -1,6 +1,7 @@
 package listeners;
 
 import base.BaseDriver;
+import core.ConfigManager;
 import io.appium.java_client.AppiumDriver;
 import io.qameta.allure.Allure;
 import io.qameta.allure.AllureLifecycle;
@@ -87,10 +88,22 @@ public class AllureListener implements ITestListener {
                 ? firstNonBlank(System.getProperty("android.udid"), parameter(result, "suiteUdid"))
                 : firstNonBlank(System.getProperty("ios.udid"), parameter(result, "suiteUdid"));
 
-        String appiumServer = firstNonBlank(System.getProperty("appiumServer"), "unknown");
+        // Thứ tự ưu tiên (đồng bộ với BaseDriver.buildSuiteAppiumUrl + DriverFactory):
+        //   1) suiteAppiumPort  — port thực được Driver kết nối, đến từ
+        //      testng-multidevice.xml do GenerateHcBoxSuite sinh (1 server / device).
+        //   2) -DappiumServer   — CLI override (vd profile -Plocal trỏ về 4723).
+        //   3) ConfigManager    — appiumServer trong config/config.properties.
+        //   4) "unknown"        — không xác định được.
+        String suiteAppiumPort = parameter(result, "suiteAppiumPort");
+        String appiumServer = firstNonBlank(
+                buildLocalUrl(suiteAppiumPort),
+                System.getProperty("appiumServer"),
+                ConfigManager.get("appiumServer"),
+                "unknown");
 
         String jenkinsSlot = firstNonBlank(System.getProperty("jenkins.slot"));
         String appiumPort = firstNonBlank(
+                suiteAppiumPort,
                 System.getProperty("jenkins.appiumPort"),
                 portFromUrl(appiumServer));
         String androidSystemPort = firstNonBlank(System.getProperty("jenkins.systemPort"));
@@ -270,6 +283,25 @@ public class AllureListener implements ITestListener {
             int p = u.getPort();
             return p > 0 ? String.valueOf(p) : null;
         } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Build URL Appium loopback từ {@code suiteAppiumPort} (TestNG parameter).
+     * Trả {@code null} nếu port rỗng / không hợp lệ → caller fallback nguồn tiếp theo.
+     */
+    private static String buildLocalUrl(String port) {
+        if (port == null || port.isBlank()) {
+            return null;
+        }
+        try {
+            int p = Integer.parseInt(port.trim());
+            if (p <= 0) {
+                return null;
+            }
+            return "http://127.0.0.1:" + p;
+        } catch (NumberFormatException e) {
             return null;
         }
     }

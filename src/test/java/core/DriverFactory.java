@@ -110,7 +110,18 @@ public class DriverFactory {
         options.setSystemPort(systemPort);
         System.out.println("[DriverFactory] Android systemPort=" + systemPort + " (tự cấp, tránh conflict)");
 
-        return new AndroidDriver(new URL(server), options);
+        AndroidDriver androidDriver = new AndroidDriver(new URL(server), options);
+
+        // UiAutomator2 server có bug XPath 2.0 với một số biểu thức (vd. following:: + predicate):
+        //   "java.util.ArrayList$ListItr cannot be cast to ... NodeType"
+        // Appium recommend bật enforceXPath1 để parse theo XPath 1.0 — set runtime sau khi có session.
+        try {
+            androidDriver.setSetting("enforceXPath1", true);
+        } catch (Exception e) {
+            System.out.println("[DriverFactory] Bỏ qua setSetting(enforceXPath1): " + e.getMessage());
+        }
+
+        return androidDriver;
     }
 
     // ================================================================

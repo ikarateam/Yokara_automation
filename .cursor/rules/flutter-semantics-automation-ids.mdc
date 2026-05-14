@@ -1,0 +1,403 @@
+---
+description: Catalogue automationId (Semantics) chuẩn cho UI Flutter Yokara — dùng chung Android + iOS, format `screen_element_action/status`. Áp dụng khi dev bọc widget bằng Semantics, khi tester viết Page Object Appium, hoặc khi cần thêm/đổi locator.
+alwaysApply: false
+---
+
+# Quy ước Semantics automationId — Flutter UI Yokara
+
+> Mục tiêu: tester dùng `AppiumBy.accessibilityId(<id>)` bắt được cùng 1 element trên cả Android và iOS. Không dump locator thủ công cho từng device, không dựa text hiển thị (đa ngôn ngữ + đổi copy là gãy test).
+
+## 1. Nguyên tắc bắt buộc (dev + tester cùng tuân)
+
+1. **Mọi widget có tương tác hoặc cần verify** (button, tab, input, toggle, card item, popup, label cần assert) phải bọc bằng `Semantics(identifier: '<id>', ...)`.
+   - Flutter ≥ 3.19 dùng `identifier` — map sang `content-desc` (Android) và `accessibilityIdentifier` (iOS) → cùng giá trị `AppiumBy.accessibilityId`.
+   - Với button text-only, vẫn giữ thuộc tính `label` nguyên bản cho a11y; chỉ thêm `identifier` cho automation.
+2. **`automationId` PHẢI giống nhau trên Android và iOS.** Không dùng prefix `android_` / `ios_`.
+3. **Không dùng text hiển thị làm locator chính.** Text dùng để render UI cho user; id riêng cho automation.
+4. **Format: `screen_element_action_or_status`** (snake_case, ASCII, không dấu).
+   - `screen` = code-name màn hình ngắn gọn (xem §3, cột "Prefix").
+   - `element` = vai trò UI (`tab`, `btn`, `input`, `card`, `toggle`, `popup`, `lbl`, `icon`, `row`, `dropdown`).
+   - `action_or_status` = hành động/ý nghĩa (`submit`, `back`, `close`, `confirm`, `selected`, `private`, `empty`).
+5. **Đã release thì không đổi `automationId`** — nếu buộc đổi: thông báo tester ≥ 1 sprint trước, viết migration note.
+6. **Dynamic list**: id format `<screen>_<entity>_item_<key>` với `<key>` là field ổn định (room_id, uid, song_id…). KHÔNG dùng index (index đổi khi BE sort khác).
+7. **State đặc biệt** (loading, empty, error) cũng cần id riêng để assert trạng thái.
+
+## 2. Mapping Flutter → Appium
+
+```dart
+// Flutter (dev)
+Semantics(
+  identifier: 'truc_tuyen_tao_phong_btn',
+  label: 'Tạo phòng', // giữ cho a11y, không phải locator
+  button: true,
+  child: ElevatedButton(onPressed: _createRoom, child: ...),
+)
+```
+
+```java
+// Appium (tester) — cả Android & iOS dùng cùng 1 dòng
+private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_btn");
+```
+
+> Khi dev đã gắn `identifier`, tester thay locator hiện tại trong Page Object (vd. `AppiumBy.accessibilityId("Tạo phòng")` → `AppiumBy.accessibilityId("truc_tuyen_tao_phong_btn")`). Bám pattern Page Object hiện có trong `src/test/java/pages/`, không reorganize package (xem `.cursor/skills/appium-locator-priority/SKILL.md`).
+
+## 3. Catalogue automationId theo màn hình
+
+> Cột **Hiện trạng** chỉ rõ locator đang dùng trong Page Object — sau khi dev bổ sung `Semantics`, tester thay bằng cột **automationId**. Ô trống cột Hiện trạng = element mới chưa có locator code.
+
+### 3.1 Bottom Navigation — `BottomNav.java`  (prefix `bottom_nav`)
+
+| automationId | Màn hình tab | Hiện trạng locator |
+|---|---|---|
+| `bottom_nav_trang_chu_tab` | Trang chủ | `accessibilityId("Trang chủ")` |
+| `bottom_nav_truc_tuyen_tab` | Trực tuyến | `accessibilityId("Trực tuyến")` + nhiều fallback |
+| `bottom_nav_hat_tab` | Hát | xpath sibling Android/iOS (badge số) |
+| `bottom_nav_tin_nhan_tab` | Tin nhắn | xpath sibling Android/iOS (badge số) |
+| `bottom_nav_toi_tab` | Tôi | `accessibilityId("Tôi")` |
+
+### 3.2 Trang chủ — `TrangChuScr.java`  (prefix `home`)
+
+| automationId | Mô tả |
+|---|---|
+| `home_screen_root` | Marker root (assert `isLoaded`) |
+| `home_search_btn` | Icon tìm kiếm header (đang xpath thuần) |
+| `home_su_kien_btn` | Nút "Sự kiện" |
+| `home_quanh_day_btn` | Nút "Quanh đây" |
+| `home_mv_noi_bat_section` | Section "MV nổi bật" |
+| `home_mv_noi_bat_item_<mv_id>` | Card MV nổi bật (dynamic, key = mv_id) |
+| `home_top_right_action_btn` | Action góc trên phải header |
+
+### 3.3 Trực tuyến — `TrucTuyenScr.java`  (prefix `truc_tuyen`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `truc_tuyen_screen_root` | Marker root |  |
+| `truc_tuyen_truc_tuyen_subtab` | Sub-tab "Trực tuyến" header | `accessibilityId("Trực tuyến")` |
+| `truc_tuyen_kham_pha_subtab` | Sub-tab "Khám phá" | `accessibilityId("Khám phá")` |
+| `truc_tuyen_search_btn` | Icon search header | xpath sibling |
+| `truc_tuyen_tao_phong_btn` | Nút Tạo phòng | `accessibilityId("Tạo phòng")` |
+| `truc_tuyen_bang_xep_hang_btn` | Nút Bảng xếp hạng | `accessibilityId("Bảng xếp hạng")` |
+| `truc_tuyen_nhiem_vu_btn` | Nút Nhiệm vụ | `accessibilityId("Nhiệm vụ")` |
+| `truc_tuyen_de_cu_tab` | Tab "Đề cử" | `accessibilityId("Đề cử")` |
+| `truc_tuyen_gan_day_tab` | Tab "Gần đây" | `accessibilityId("Gần đây")` |
+| `truc_tuyen_cua_toi_tab` | Tab "Của tôi" | `accessibilityId("Của tôi")` |
+| `truc_tuyen_search_input` | Ô nhập sau khi mở search | `EditText` Android / `accessibilityId("Nhập ID, tên phòng")` iOS |
+| `truc_tuyen_search_submit_btn` | Nút submit search trên keyboard | predicate iOS / IME action |
+| `truc_tuyen_room_item_<room_id>` | Dòng phòng trong kết quả (dynamic) | xpath theo tên phòng |
+| `truc_tuyen_no_room_lbl` | Trạng thái "Không có phòng" | `accessibilityId("Không có phòng")` |
+
+### 3.4 Khám phá — `KhamPhaScr.java`  (prefix `kham_pha`)
+
+| automationId | Mô tả |
+|---|---|
+| `kham_pha_screen_root` | Marker root |
+| `kham_pha_search_btn` | Icon search header |
+| `kham_pha_xu_huong_btn` | Tab/nút "Xu hướng" |
+| `kham_pha_sanh_game_btn` | Nút "Sảnh game" |
+| `kham_pha_danh_ca_btn` | Nút "Danh ca" |
+| `kham_pha_song_ca_btn` | Nút "Song ca" |
+| `kham_pha_top_dai_gia_section` | Section Top đại gia |
+| `kham_pha_top_dai_gia_xem_them_btn` | "Xem thêm" trong Top đại gia |
+| `kham_pha_top_bai_thu_section` | Section Top bài thu |
+| `kham_pha_top_bai_thu_xem_them_btn` | "Xem thêm" trong Top bài thu |
+| `kham_pha_top_dai_gia_item_<uid>` | Item user trong Top đại gia (dynamic) |
+| `kham_pha_top_bai_thu_item_<song_id>` | Item bài thu (dynamic) |
+
+### 3.5 Tạo phòng — `TaoPhongScr.java`  (prefix `tao_phong`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `tao_phong_screen_root` | Marker root |  |
+| `tao_phong_back_btn` | Quay lại |  |
+| `tao_phong_ten_phong_input` | Ô đặt tên phòng | `accessibilityId("Đặt tên phòng")` |
+| `tao_phong_sua_ten_btn` | Nút Sửa tên | `accessibilityId("Sửa tên")` |
+| `tao_phong_ten_phong_edit_input` | EditText sửa tên | className |
+| `tao_phong_luu_ten_btn` | Nút Lưu tên | `accessibilityId("Lưu")` |
+| `tao_phong_mode_dropdown` | Dropdown chế độ phòng | xpath text Công khai/Riêng tư |
+| `tao_phong_mode_cong_khai_opt` | Option Công khai |  |
+| `tao_phong_mode_rieng_tu_opt` | Option Riêng tư | xpath @label='Riêng tư' |
+| `tao_phong_submit_btn` | Nút "Tạo phòng" submit | xpath Button |
+| `tao_phong_password_popup` | Popup nhập mật khẩu (state) | xpath text "mật khẩu" |
+| `tao_phong_password_input` | Ô nhập mật khẩu 4 số | EditText / SecureTextField |
+| `tao_phong_password_xac_nhan_btn` | Nút Xác nhận mật khẩu | `accessibilityId("Xác nhận")` |
+
+### 3.6 Của tôi (rooms) — `CuaToiScr.java`  (prefix `cua_toi`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `cua_toi_screen_root` | Marker root |  |
+| `cua_toi_search_btn` | Search | xpath sibling |
+| `cua_toi_search_input` | Ô tìm | className / `accessibilityId("Nhập ID, tên phòng")` |
+| `cua_toi_room_card_item_<room_id>` | Card phòng (dynamic) | xpath theo tên Talk\n…\nname |
+| `cua_toi_no_room_lbl` | Trạng thái rỗng | `accessibilityId("Không có phòng")` |
+| `cua_toi_search_submit_btn` | Submit search keyboard | predicate / IME |
+
+### 3.7 Phòng (in-room) — `PhongScr.java`  (prefix `phong`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `phong_screen_root` | Marker root |  |
+| `phong_back_btn` | Đóng phòng góc trên trái | `id("...lnBackRoom")` / `accessibilityId("ic_close_room")` |
+| `phong_room_title_lbl` | Tiêu đề tên phòng |  |
+| `phong_thong_tin_btn` | Mở Thông tin phòng | `id("...ivRoomKara")` / xpath |
+| `phong_micro_toggle` | Mute/Unmute mic | xpath text "Micro" |
+| `phong_micro_on_status` | Trạng thái micro on |  |
+| `phong_micro_off_status` | Trạng thái micro off |  |
+| `phong_chat_input_btn` | Vùng "Nói gì đi nào!" | `id("...tvComment")` / `accessibilityId("Nói gì đi nào!")` |
+| `phong_sing_btn` | Chọn bài hát | `id("...lnSing")` / `accessibilityId("btn_choose_song")` |
+| `phong_gift_btn` | Tặng quà | `id("...ivGift")` / `accessibilityId("footer_button_gift")` |
+| `phong_leave_btn` | Rời phòng / Kết thúc | xpath text |
+| `phong_leave_confirm_btn` | Xác nhận rời |  |
+
+### 3.8 Thông tin phòng — `ThongTinPhongScr.java`  (prefix `thong_tin_phong`)
+
+| automationId | Mô tả |
+|---|---|
+| `thong_tin_phong_screen_root` | Marker root |
+| `thong_tin_phong_back_btn` | Quay lại |
+| `thong_tin_phong_room_name_lbl` | Tên phòng |
+| `thong_tin_phong_cong_khai_lbl` | Badge Công khai |
+| `thong_tin_phong_rieng_tu_lbl` | Badge Riêng tư |
+| `thong_tin_phong_doi_mat_khau_row` | Row "Đổi mật khẩu" (chỉ PRIVATE) |
+| `thong_tin_phong_mat_khau_moi_input` | Ô nhập mật khẩu mới |
+| `thong_tin_phong_luu_mat_khau_btn` | Lưu mật khẩu |
+| `thong_tin_phong_thong_bao_row` | Row Thông báo |
+| `thong_tin_phong_thong_bao_input` | Ô nhập thông báo |
+| `thong_tin_phong_luu_thong_bao_btn` | Lưu thông báo |
+| `thong_tin_phong_xoa_phong_btn` | Xóa phòng |
+| `thong_tin_phong_xoa_phong_confirm_btn` | Confirm "Có" khi xóa |
+
+### 3.9 Bảng xếp hạng — `BangXepHangScr.java`  (prefix `bang_xep_hang`)
+
+| automationId | Mô tả |
+|---|---|
+| `bang_xep_hang_screen_root` | Marker root |
+| `bang_xep_hang_back_btn` | Quay lại |
+| `bang_xep_hang_filter_dropdown` | Bộ lọc theo thời gian (ngày/tuần/tháng) |
+| `bang_xep_hang_user_item_<uid>` | Item user (dynamic) |
+
+### 3.10 Trung tâm nhiệm vụ — `TrungTamNhiemVuScr.java`  (prefix `nhiem_vu`)
+
+| automationId | Mô tả |
+|---|---|
+| `nhiem_vu_screen_root` | Marker root |
+| `nhiem_vu_back_btn` | Quay lại |
+| `nhiem_vu_item_<task_id>` | Mục nhiệm vụ (dynamic) |
+| `nhiem_vu_nhan_thuong_btn_<task_id>` | Nút Nhận thưởng theo nhiệm vụ |
+
+### 3.11 Hát - Bài hát — `HatScr.java`  (prefix `hat`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `hat_screen_root` | Marker root |  |
+| `hat_bai_hat_subtab` | Sub-tab "Bài hát" | `accessibilityId("Bài hát")` |
+| `hat_song_ca_subtab` | Sub-tab "Song ca" | `accessibilityId("Song ca")` |
+| `hat_search_btn` | Icon search header | xpath sibling |
+| `hat_search_input` | Ô tìm bài hát/thành viên/ID | `accessibilityId("Nhập tên bài hát…")` |
+| `hat_search_result_user_item_<uid>` | Kết quả user (dynamic) | xpath contains uid |
+| `hat_search_result_song_item_<song_id>` | Kết quả bài (dynamic) | xpath contains name |
+| `hat_than_tuong_xem_them_btn` | Xem thêm Thần tượng | `accessibilityId("Xem thêm")` |
+| `hat_song_item_<song_id>_play_btn` | Nút "Hát" trong card bài (dynamic) |  |
+
+### 3.12 Hát - Song ca — `SongCaScr.java`  (prefix `song_ca`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `song_ca_screen_root` | Marker root |  |
+| `song_ca_search_input` | Ô tìm bài chờ song ca | `accessibilityId("Tìm kiếm bài hát chờ song ca")` |
+| `song_ca_song_item_<song_id>` | Card bài chờ (dynamic) |  |
+| `song_ca_song_item_<song_id>_join_btn` | Nút "Song ca" trong card |  |
+
+### 3.13 Tin nhắn — `TinNhanScr.java`  (prefix `tin_nhan`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `tin_nhan_screen_root` | Marker root | `accessibilityId("Tin nhắn")` |
+| `tin_nhan_search_btn` | Icon search header | xpath sibling |
+| `tin_nhan_thong_bao_row` | Mục Thông báo | xpath text |
+| `tin_nhan_nghe_row` | Mục Nghe | xpath text |
+| `tin_nhan_thich_row` | Mục Thích | xpath text |
+| `tin_nhan_binh_luan_row` | Mục Bình luận | xpath text |
+| `tin_nhan_qua_tang_row` | Mục Quà tặng | xpath text |
+| `tin_nhan_ho_tro_row` | Mục Hỗ trợ | xpath text |
+| `tin_nhan_nguoi_la_row` | Mục Tin nhắn từ người lạ | xpath text |
+| `tin_nhan_chat_item_<uid>` | Cuộc hội thoại với user (dynamic) | xpath contains userName |
+| `tin_nhan_thong_bao_badge_<row>` | Badge số chưa đọc theo row |  |
+
+### 3.14 Tôi - Guest — `ToiGuestScr.java`  (prefix `toi_guest`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `toi_guest_screen_root` | Marker root |  |
+| `toi_guest_dang_nhap_btn` | Nút "Đăng nhập" | `accessibilityId("Đăng nhập")` |
+
+### 3.15 Tôi - Profile — `ToiProfileScr.java`  (prefix `toi_profile`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `toi_profile_screen_root` | Marker root |  |
+| `toi_profile_back_btn` | Back header (nếu có) |  |
+| `toi_profile_setting_btn` | Icon Cài đặt header | xpath ancestor |
+| `toi_profile_user_id_lbl` | UID hiển thị (dùng làm anchor cũng được) | xpath digit-only |
+| `toi_profile_avatar_img` | Avatar |  |
+| `toi_profile_edit_avatar_btn` | Sửa avatar |  |
+| `toi_profile_vip_menu_row` | Menu VIP | xpath contains "VIP" |
+| `toi_profile_tac_pham_tab` | Tab Tác phẩm | xpath contains |
+| `toi_profile_moi_song_ca_tab` | Tab Mời song ca | xpath contains |
+| `toi_profile_ban_nhap_btn` | Bản nháp | `accessibilityId("Bản nháp")` |
+| `toi_profile_gio_qua_btn` | Giỏ quà | xpath ImageView |
+| `toi_profile_nhiem_vu_btn` | Nhiệm vụ | `accessibilityId("Nhiệm vụ")` |
+| `toi_profile_tac_pham_item_<song_id>` | Item tác phẩm (dynamic) |  |
+| `toi_profile_moi_song_ca_item_<song_id>` | Item mời song ca (dynamic) |  |
+
+### 3.16 Cài đặt — `CaiDatScr.java`  (prefix `cai_dat`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `cai_dat_screen_root` | Marker root | `accessibilityId("Quyền riêng tư")` |
+| `cai_dat_back_btn` | Quay lại |  |
+| `cai_dat_ung_dung_hay_row` | Ứng dụng hay | `accessibilityId("Ứng dụng hay")` |
+| `cai_dat_bao_cao_loi_row` | Báo cáo lỗi | `accessibilityId("Báo cáo lỗi")` |
+| `cai_dat_don_dep_row` | Dọn dẹp | `accessibilityId("Dọn dẹp")` |
+| `cai_dat_nguoi_bi_chan_row` | Người bị chặn | `accessibilityId("Người bị chặn")` |
+| `cai_dat_quyen_rieng_tu_row` | Quyền riêng tư | `accessibilityId("Quyền riêng tư")` |
+| `cai_dat_chinh_sach_row` | Chính sách | `accessibilityId("Chính sách")` |
+| `cai_dat_ngon_ngu_row` | Ngôn ngữ | `accessibilityId("Ngôn ngữ")` |
+| `cai_dat_phien_ban_row` | Phiên bản | xpath ImageView contains |
+| `cai_dat_huy_tai_khoan_btn` | Huỷ tài khoản | `accessibilityId("Huỷ tài khoản")` |
+| `cai_dat_chuyen_tai_khoan_btn` | Chuyển đổi tài khoản | `accessibilityId("Chuyển đổi tài khoản")` |
+| `cai_dat_dang_xuat_btn` | Đăng xuất | `accessibilityId("Đăng xuất")` |
+
+### 3.17 Popup Đăng xuất — `LogoutPopup.java`  (prefix `logout_popup`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `logout_popup_root` | Popup hiển thị (state) |  |
+| `logout_popup_dong_btn` | Nút Đóng | `accessibilityId("Đóng")` |
+| `logout_popup_xac_nhan_btn` | Nút Xác nhận | `accessibilityId("Xác nhận")` |
+
+### 3.18 Login - Chọn phương thức — `LoginMethodScr.java`  (prefix `login_method`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `login_method_screen_root` | Marker root |  |
+| `login_method_back_btn` | Đóng/Quay lại |  |
+| `login_method_facebook_btn` | Facebook | `accessibilityId("Đăng nhập Facebook")` |
+| `login_method_google_btn` | Google | `accessibilityId("Đăng nhập bằng Google")` + xpath |
+| `login_method_zalo_btn` | Zalo | `accessibilityId("Đăng nhập Zalo")` + xpath absolute |
+| `login_method_apple_btn` | Apple | `accessibilityId("Đăng nhập bằng Apple")` |
+| `login_method_uid_btn` | UID | `accessibilityId("Đăng nhập bằng ID")` + chain |
+| `login_method_phone_btn` | Số điện thoại | `accessibilityId("Đăng nhập số điện thoại")` + chain |
+| `login_method_gan_day_section` | Cụm "Gần đây" |  |
+| `login_method_terms_checkbox` | Checkbox điều khoản (nếu có) |  |
+
+### 3.19 Login - Số điện thoại — `LoginPhoneScr.java`  (prefix `login_phone`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `login_phone_screen_root` | Marker root |  |
+| `login_phone_back_btn` | Quay lại |  |
+| `login_phone_input` | Ô nhập SĐT | xpath/`accessibilityId(" Nhập số điện thoại")` |
+| `login_phone_next_btn` | Tiếp theo | `accessibilityId("Tiếp theo")` |
+| `login_phone_country_code_dropdown` | Mã vùng (nếu có) |  |
+
+### 3.20 Login - OTP — `OtpVerificationScr.java`  (prefix `login_otp`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `login_otp_screen_root` | Marker root | xpath contains "Nhập mã OTP" |
+| `login_otp_back_btn` | Quay lại |  |
+| `login_otp_input` | Ô nhập OTP | xpath EditText con của block OTP |
+| `login_otp_confirm_btn` | Xác nhận | `accessibilityId("Xác nhận")` |
+| `login_otp_resend_btn` | Gửi lại mã | `accessibilityId("Gửi lại mã")` |
+| `login_otp_error_lbl` | Trạng thái lỗi | xpath contains "Mã kích hoạt không đúng…" |
+| `login_otp_resend_countdown_lbl` | Đếm ngược gửi lại |  |
+
+### 3.21 Login - UID — `LoginUIDScr.java`  (prefix `login_uid`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `login_uid_screen_root` | Marker root |  |
+| `login_uid_back_btn` | Quay lại |  |
+| `login_uid_input` | Ô nhập UID | xpath EditText password=false |
+| `login_uid_password_input` | Ô nhập password | xpath EditText password=true |
+| `login_uid_password_visibility_toggle` | Hiện/ẩn password |  |
+| `login_uid_submit_btn` | Đăng nhập | `accessibilityId("Đăng nhập")` |
+| `login_uid_error_lbl` | Trạng thái lỗi |  |
+
+### 3.22 Account đã lưu — `AccountScr.java`  (prefix `account_saved`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `account_saved_screen_root` | Marker root | xpath contains "ID: " |
+| `account_saved_account_item_<uid>` | Dòng tài khoản đã lưu (dynamic) | xpath contains "ID: <uid>" |
+| `account_saved_dang_nhap_khac_btn` | "Đăng nhập bằng tài khoản khác" | `accessibilityId("Đăng nhập bằng tài khoản khác")` + chuỗi fallback iOS |
+
+### 3.23 Chi tiết bài thu — `ChiTietBaiScr.java`  (prefix `chi_tiet_bai`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `chi_tiet_bai_screen_root` | Marker root | "Bạn đang chơi" + "Bình luận N" |
+| `chi_tiet_bai_back_btn` | Back header | xpath y<100 / Android xpath text |
+| `chi_tiet_bai_play_pause_toggle` | Play / Pause player |  |
+| `chi_tiet_bai_play_status` | Trạng thái đang play |  |
+| `chi_tiet_bai_pause_status` | Trạng thái pause |  |
+| `chi_tiet_bai_theo_doi_btn` | Theo dõi (chủ bài) | `accessibilityId("Theo dõi")` |
+| `chi_tiet_bai_theo_doi_partner_btn` | Theo dõi partner song ca (index=1) | xpath theo index |
+| `chi_tiet_bai_xem_them_btn` | Xem thêm | `accessibilityId("Xem thêm")` |
+| `chi_tiet_bai_qua_count_lbl` | "Quà N" — section count | xpath starts-with "Quà" |
+| `chi_tiet_bai_thich_count_lbl` | "Thích N" — section count | xpath starts-with "Thích " |
+| `chi_tiet_bai_binh_luan_count_lbl` | "Bình luận N" — header | xpath starts-with "Bình luận " |
+| `chi_tiet_bai_binh_luan_footer_btn` | Footer "Bình luận" mở composer | `accessibilityId("Bình luận")` |
+| `chi_tiet_bai_comment_input` | Input composer | className XCUIElementTypeTextField / EditText hint |
+| `chi_tiet_bai_comment_send_btn` | Nút gửi cạnh input | xpath sibling Image |
+| `chi_tiet_bai_comment_suggestion_item_<index>` | StaticText gợi ý (dynamic, ổn định nếu BE trả cố định) |  |
+| `chi_tiet_bai_comment_item_<comment_id>` | Cell comment (dynamic, key = comment_id) | acc-id = content (chưa ổn định) |
+| `chi_tiet_bai_comment_item_<comment_id>_tra_loi_btn` | Nút Trả lời theo cell | `accessibilityId("Trả lời")` |
+| `chi_tiet_bai_comment_item_<comment_id>_like_btn` | Nút like trong cell | xpath Image[last()] |
+| `chi_tiet_bai_comment_item_<comment_id>_liked_status` | Trạng thái đã like |  |
+| `chi_tiet_bai_reply_input` | Input khi reply | `accessibilityId("Trả lời @<user>")` |
+| `chi_tiet_bai_like_detail_popup` | Popup chi tiết lượt like (state) | xpath starts-with "Tất cả " |
+| `chi_tiet_bai_like_detail_unlike_btn` | Nút bỏ like trong popup | xpath sibling Image |
+| `chi_tiet_bai_like_detail_user_item_<uid>` | User item trong popup like (dynamic) |  |
+
+## 4. Quy ước đặt id mới (khi gặp màn/element chưa có trong catalogue)
+
+1. Lấy **prefix** từ §3 (theo Page Object hiện tại). Nếu là màn mới → đặt prefix snake_case ngắn ≤ 18 ký tự.
+2. Đặt `element` theo bảng vai trò:
+   - `btn` (button), `tab` / `subtab`, `input`, `dropdown`, `toggle`, `row`, `card`, `item`, `lbl`, `icon`, `img`, `popup`, `section`, `badge`, `screen_root`.
+3. Đặt `action_or_status` cụ thể; tránh từ chung chung như `_click`, `_btn1`.
+4. Dynamic → suffix `_<key>` ở cuối; key là field BE ổn định, không phải index UI.
+5. State đặc biệt → suffix `_status` (vd. `_selected`, `_disabled`, `_loading`, `_empty`, `_error`).
+6. Tối đa 60 ký tự, chỉ `[a-z0-9_]`.
+
+## 5. Quy trình release
+
+- PR Flutter thêm `Semantics(identifier:)` PHẢI đính kèm danh sách id mới và update file này (không merge nếu thiếu).
+- Tester cập nhật Page Object trong cùng sprint:
+  - Thay locator cũ trong `pages/...` bằng `AppiumBy.accessibilityId("<id>")`.
+  - Xóa fallback xpath khi đã ổn định trên cả 2 nền tảng (xem `.cursor/skills/appium-locator-priority/SKILL.md`).
+  - Re-run profile bị ảnh hưởng (`mvn clean test -P<profile>`) trước khi báo done.
+- **Không đổi `automationId` đã release** nếu chưa thông báo tester ≥ 1 sprint trước; có đổi → ghi rõ migration trong phần Changelog cuối file này.
+
+## 6. Done khi (DoD)
+
+- [ ] Tester chạy `AppiumBy.accessibilityId("<id>")` bắt được element trên cả Android + iOS (không cần fallback xpath).
+- [ ] Mỗi màn hình chính có danh sách id đính kèm task (Jira/PR Flutter).
+- [ ] Catalogue §3 cập nhật khớp build mới nhất.
+- [ ] Page Object trong `src/test/java/pages/` đã thay locator cũ bằng `accessibilityId(<id>)` cho phần dev đã gắn `Semantics`.
+- [ ] Compile sạch: `mvn clean test -DskipTests`; profile bị ảnh hưởng pass smoke.
+
+## 7. Checklist nhanh khi review PR Flutter
+
+- [ ] Mọi widget có `onPressed` / `onTap` / `onChanged` đều có `Semantics(identifier:)`.
+- [ ] `identifier` đúng format `<screen>_<element>_<action_or_status>`, snake_case ASCII.
+- [ ] Trùng cột `automationId` trong §3 (nếu là màn cũ); hoặc đã PR thêm vào §3 (nếu màn/element mới).
+- [ ] Không có `identifier` trùng giữa hai widget khác chức năng.
+- [ ] Dynamic list dùng key BE, không index.
+
+## 8. Changelog
+
+| Ngày | Thay đổi | Người |
+|---|---|---|
+| 2026-05-13 | Tạo catalogue lần đầu, phủ 23 màn hình theo Page Object hiện có. | NgocLB |

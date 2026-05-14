@@ -70,7 +70,35 @@ public class TrangChuScr extends BaseScr {
     }
 
     public ChiTietBaiScr openRandomMvNoiBat() {
-        By firstMvItem = AppiumBy.xpath(
+        By firstMvItem = byPlatform(driver, androidFirstMvCard(), iosFirstMvCard());
+        // select(): chỉ chờ visible, không yêu cầu clickable (XCUIElementTypeImage iOS
+        // thường không pass elementToBeClickable của WDA; Android card clickable=true vẫn ok).
+        select(firstMvItem);
+        return new ChiTietBaiScr(driver);
+    }
+
+    /**
+     * Android: anchor {@code content-desc='MV nổi bật'} →
+     * {@code android.widget.HorizontalScrollView} kế tiếp → card đầu tiên (View clickable).
+     * Mỗi card có content-desc dạng {@code "<song_id>\n<song_name>\n<singer>"} (đối chiếu
+     * {@code XML android Screen locator/TrangChuScr_android.txt} line 18–23).
+     * <p>Khi dev gắn {@code Semantics(identifier: 'home_mv_noi_bat_item_<mv_id>')}
+     * (xem {@code .cursor/rules/flutter-semantics-automation-ids.mdc} §3.2),
+     * thay bằng {@code AppiumBy.accessibilityId(...)} đa nền.
+     */
+    private static By androidFirstMvCard() {
+        return AppiumBy.xpath(
+                "//android.view.View[@content-desc='MV nổi bật']"
+                        + "/following::android.widget.HorizontalScrollView[1]"
+                        + "/android.view.View[@clickable='true'][1]");
+    }
+
+    /**
+     * iOS: absolute xpath theo dump {@code scripts/xml_dumps/ios/TrangChuScr_ios.xml}
+     * (giữ nguyên hành vi cũ — chờ Semantics để thay locator tương đối).
+     */
+    private static By iosFirstMvCard() {
+        return AppiumBy.xpath(
                 "//XCUIElementTypeApplication[@name=\"Yokara\"]/XCUIElementTypeWindow[1]"
                         + "/XCUIElementTypeOther/XCUIElementTypeOther/XCUIElementTypeOther"
                         + "/XCUIElementTypeOther[1]/XCUIElementTypeOther/XCUIElementTypeOther"
@@ -78,9 +106,5 @@ public class TrangChuScr extends BaseScr {
                         + "/XCUIElementTypeOther[2]/XCUIElementTypeOther[2]/XCUIElementTypeOther[2]"
                         + "/XCUIElementTypeOther[1]/XCUIElementTypeOther[2]/XCUIElementTypeOther[1]"
                         + "/XCUIElementTypeImage[2]");
-        // select(): chỉ chờ visible, không yêu cầu clickable (XCUIElementTypeImage iOS
-        // thường không pass elementToBeClickable của WDA).
-        select(firstMvItem);
-        return new ChiTietBaiScr(driver);
     }
 }

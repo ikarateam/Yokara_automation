@@ -23,17 +23,20 @@ import java.util.List;
  * riêng vào một tab.
  *
  * <p>
- * Dump tham chiếu: {@code scripts/xml_dumps/ios/ChiTietBaiScr_ios.xml} (iOS).
- * Android dump
- * chưa có — các accessibility-id dùng chung (Flutter semantics) thường khớp cả
- * hai nền,
- * nhưng cần verify lại bằng dump Android trước khi merge production.
+ * Dump tham chiếu:
+ * <ul>
+ * <li>iOS: {@code scripts/xml_dumps/ios/ChiTietBaiScr_ios.xml},
+ * {@code tc1_2.xml}, {@code fail_page.xml}.</li>
+ * <li>Android: {@code scripts/xml_dumps/ChiTietBai_android.xml} (player),
+ * {@code scripts/xml_dumps/ios/comment_android.xml} (composer + reply),
+ * {@code scripts/xml_dumps/ios/fail_page.xml} (popup like detail).</li>
+ * </ul>
  */
 public class ChiTietBaiScr extends BaseScr {
 
     /**
-     * Footer "Bình luận" tap để mở khung soạn comment (x=0, y=834, w=222, h=37
-     * trong dump iOS).
+     * Footer "Bình luận" tap để mở khung soạn comment.
+     * iOS: name="Bình luận"; Android: content-desc="Bình luận".
      */
     private final By btnBinhLuanFooter = AppiumBy.accessibilityId("Bình luận");
 
@@ -64,24 +67,58 @@ public class ChiTietBaiScr extends BaseScr {
     private final By btnBack;
 
     /**
-     * Input nhập comment khi composer mở. Dump iOS (tc1_2.xml line 287):
-     * {@code XCUIElementTypeTextField} không có acc-id/label → bắt theo class.
-     * Trên màn composer chỉ có 1 TextField nên đủ phân biệt.
+     * Input nhập comment khi composer mở.
+     * iOS (tc1_2.xml): {@code XCUIElementTypeTextField} không có acc-id — bắt theo
+     * class.
+     * Android (comment_android.xml line 61): {@code android.widget.EditText} có
+     * {@code hint="Nói gì đi nào!"}.
      */
-    private final By txtCommentInput = AppiumBy.className("XCUIElementTypeTextField");
+    private final By txtCommentInput;
 
     /**
-     * Nút gửi cạnh input. Dump iOS (tc1_2.xml line 288):
-     * {@code XCUIElementTypeImage}
-     * không có acc-id, đứng kế ngay sau TextField trong cùng parent →
-     * following-sibling.
+     * Nút gửi cạnh input — sibling Image ngay sau input field (cả iOS lẫn Android
+     * cùng pattern). Chỉ có 1 input trên composer state nên following-sibling đủ
+     * phân biệt.
      */
-    private final By btnSend = AppiumBy.xpath(
-            "//XCUIElementTypeTextField/following-sibling::XCUIElementTypeImage[1]");
+    private final By btnSend;
 
     public ChiTietBaiScr(AppiumDriver driver) {
         super(driver);
         this.btnBack = buildBackButton(driver);
+
+        boolean ios = driver instanceof IOSDriver;
+        this.txtCommentInput = ios
+                ? AppiumBy.className("XCUIElementTypeTextField")
+                : AppiumBy.xpath("//android.widget.EditText[@hint='Nói gì đi nào!']");
+        this.btnSend = ios
+                ? AppiumBy.xpath("//XCUIElementTypeTextField/following-sibling::XCUIElementTypeImage[1]")
+                : AppiumBy.xpath("//android.widget.EditText/following-sibling::android.widget.ImageView[1]");
+        this.firstSuggestion = ios
+                ? AppiumBy.xpath(
+                        "//XCUIElementTypeTextField[@name='Nói gì đi nào!']"
+                                + "/../XCUIElementTypeOther/XCUIElementTypeStaticText[1]")
+                // Android: anchor theo EditText composer (hint 'Nói gì đi nào!' khi mở từ footer,
+                // hoặc 'Trả lời @...' khi reply) — HorizontalScrollView suggestion là
+                // preceding-sibling, child View đầu tiên có content-desc là gợi ý đầu (dump
+                // scripts/xml_dumps/ios/comment_android.xml line 68–72).
+                : AppiumBy.xpath(
+                        "//android.widget.EditText[contains(@hint,'Nói gì đi nào')"
+                                + " or starts-with(@hint,'Trả lời @')]"
+                                + "/preceding-sibling::android.widget.HorizontalScrollView[1]"
+                                + "/android.view.View[@content-desc and string-length(@content-desc)>0][1]");
+        this.lblLikeDetailHeader = AppiumBy.xpath(
+                "//*[(self::XCUIElementTypeStaticText and starts-with(@name,'Tất cả '))"
+                        + " or (self::android.view.View and starts-with(@content-desc,'Tất cả '))]");
+        this.btnUnlikeInLikeDetail = ios
+                ? AppiumBy.xpath(
+                        "//XCUIElementTypeStaticText[starts-with(@name,'Tất cả ')]"
+                                + "/following-sibling::XCUIElementTypeImage[1]")
+                // Android: popup không có nút bỏ-like riêng — tap row chính user (row đầu tiên
+                // clickable sau header "Tất cả N"). Test scenario chỉ có 1 row (mình tự like
+                // bài mình).
+                : AppiumBy.xpath(
+                        "//android.view.View[starts-with(@content-desc,'Tất cả ')]"
+                                + "/following::android.view.View[@clickable='true'][1]");
     }
 
     private static By buildBackButton(AppiumDriver driver) {
@@ -146,8 +183,11 @@ public class ChiTietBaiScr extends BaseScr {
      * Sau khi tap, input composer sẽ tự được fill bằng text này — không tự gửi.
      */
     public void selectRecommendMessage(String value) {
-        select(AppiumBy.xpath(
-                "//XCUIElementTypeStaticText[@value=" + xQuote(value) + "]"));
+        // Cross-platform: Flutter set accessibility identifier = text gợi ý →
+        // iOS expose qua name/label, Android expose qua content-desc. Cả hai
+        // đều match được bằng AppiumBy.accessibilityId. Tránh XPath chứa
+        // emoji/diacritics (vốn không cần thiết và dễ vỡ).
+        select(AppiumBy.accessibilityId(value));
     }
 
     /**
@@ -173,9 +213,7 @@ public class ChiTietBaiScr extends BaseScr {
      * <p>App random thứ tự gợi ý mỗi lần mở composer → text trả về khác nhau
      * giữa các lần chạy. Caller phải đọc runtime, không hardcode.
      */
-    private final By firstSuggestion = AppiumBy.xpath(
-            "//XCUIElementTypeTextField[@name='Nói gì đi nào!']"
-                    + "/../XCUIElementTypeOther/XCUIElementTypeStaticText[1]");
+    private final By firstSuggestion;
 
     /**
      * Đọc text của gợi ý đầu tiên trong composer. Yêu cầu composer đã mở.
@@ -183,15 +221,32 @@ public class ChiTietBaiScr extends BaseScr {
      */
     public String readFirstSuggestionText() {
         WebElement el = WaitUtils.waitForVisible(driver, firstSuggestion);
-        String text = el.getAttribute("name");
-        if (text == null || text.isBlank()) {
-            text = el.getAttribute("label");
+        String text;
+        if (driver instanceof IOSDriver) {
+            text = firstNonBlank(
+                    safeReadAttr(el, "name"),
+                    safeReadAttr(el, "label"),
+                    safeReadAttr(el, "value"));
+        } else {
+            // UiAutomator2 chỉ hỗ trợ {text,name} và {content-desc,contentDescription} —
+            // KHÔNG hỗ trợ 'label' (sẽ throw UnsupportedCommandException).
+            text = firstNonBlank(
+                    safeReadAttr(el, "content-desc"),
+                    safeReadAttr(el, "text"));
         }
         if (text == null || text.isBlank()) {
             throw new RuntimeException(
-                    "[ChiTietBaiScr] Không đọc được text gợi ý đầu tiên (name + label đều rỗng).");
+                    "[ChiTietBaiScr] Không đọc được text gợi ý đầu tiên (content-desc/text/name đều rỗng).");
         }
         return text;
+    }
+
+    private static String safeReadAttr(WebElement el, String attr) {
+        try {
+            return el.getAttribute(attr);
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     /** Tap nút gửi cạnh input. */
@@ -226,10 +281,22 @@ public class ChiTietBaiScr extends BaseScr {
 
     /**
      * Verify 1 comment có nội dung {@code content} đã xuất hiện trong list.
-     * Dùng acc-id = content (cell wrapper Flutter set name = content).
+     * Dùng acc-id = content (cell wrapper Flutter set
+     * {@code name} (iOS) / {@code content-desc} (Android) = content).
+     *
+     * <p>Sau {@code tapSend()}, list comment cần thời gian refresh từ BE rồi prepend
+     * cell mới — phải dùng {@code wait.until(visibility...)} (DEFAULT 20s) thay vì
+     * {@link #isDisplayed} fail-fast. UiAutomator2 (Android) render chậm hơn WDA (iOS),
+     * fail-fast hay miss cell vừa gửi.
      */
     public boolean isCommentDisplayed(String content) {
-        return isDisplayed(AppiumBy.accessibilityId(content));
+        try {
+            wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    AppiumBy.accessibilityId(content)));
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public void tapBack() {
@@ -351,17 +418,38 @@ public class ChiTietBaiScr extends BaseScr {
      * trước khi mở rộng cho Android (CLAUDE.md §6).
      */
     public void replyComment(String user, String content, String reply) {
-        String cellXpath = "//XCUIElementTypeOther[" +
+        By replyBtn = byPlatform(driver,
+                AppiumBy.xpath(commentReplyButtonAndroidXpath(user, content)),
+                AppiumBy.xpath(commentReplyButtonIosXpath(user, content)));
+
+        StepUtils.step("Reply comment '" + content + "' của " + user, () -> {
+            WaitUtils.waitForClickable(driver, replyBtn).click();
+            // sau click sẽ hiện input box trả lời với placeholder "Trả lời @<user>"
+            typeReplyAndSend(reply, user);
+        });
+    }
+
+    private static String commentReplyButtonIosXpath(String user, String content) {
+        return "//XCUIElementTypeOther[" +
                 ".//*[@name=" + xQuote(content) + "]" +
                 " and .//XCUIElementTypeStaticText[@name=" + xQuote(user) + "]" +
                 " and ./XCUIElementTypeStaticText[@name='Trả lời']" +
                 "]/XCUIElementTypeStaticText[@name='Trả lời']";
+    }
 
-        StepUtils.step("Reply comment '" + content + "' của " + user, () -> {
-            WaitUtils.waitForClickable(driver, AppiumBy.xpath(cellXpath)).click();
-            // sau click sẽ hiện input box trả lời với placeholder "Trả lời @<user>"
-            typeReplyAndSend(reply, user);
-        });
+    /**
+     * Cell wrapper Android = {@code android.view.View} có content-desc thời gian
+     * (vd "Vừa xong", "1 phút trước"), chứa direct children: ImageView avatar,
+     * View comment body (content-desc=content) lồng View user, View "Trả lời",
+     * ImageView like (dump XML android Screen locator/ChiTietBaiScr_android.txt
+     * line 65-72).
+     */
+    private static String commentReplyButtonAndroidXpath(String user, String content) {
+        return "//android.view.View[" +
+                ".//android.view.View[@content-desc=" + xQuote(content) + "]" +
+                " and .//android.view.View[@content-desc=" + xQuote(user) + "]" +
+                " and ./android.view.View[@content-desc='Trả lời']" +
+                "]/android.view.View[@content-desc='Trả lời']";
     }
 
     /**
@@ -374,7 +462,12 @@ public class ChiTietBaiScr extends BaseScr {
      * TextField trên màn lúc reply mode mở).
      */
     private void typeReplyAndSend(String reply, String repliedUser) {
-        By replyInput = AppiumBy.accessibilityId("Trả lời @" + repliedUser);
+        // iOS Flutter: TextField name = "Trả lời @<user>" → accessibility id.
+        // Android UiAutomator2: EditText không có content-desc, chỉ có hint
+        // (dump scripts/xml_dumps/ios/comment_android.xml line 74) → phải dùng XPath @hint.
+        By replyInput = byPlatform(driver,
+                AppiumBy.xpath("//android.widget.EditText[@hint=" + xQuote("Trả lời @" + repliedUser) + "]"),
+                AppiumBy.accessibilityId("Trả lời @" + repliedUser));
         type(replyInput, reply);
         click(btnSend);
     }
@@ -395,7 +488,9 @@ public class ChiTietBaiScr extends BaseScr {
      * {@code elementToBeClickable} của WDA.
      */
     public void likeComment(String user, String content, int times) {
-        By likeBtn = AppiumBy.xpath(commentLikeButtonXpath(user, content));
+        By likeBtn = byPlatform(driver,
+                AppiumBy.xpath(commentLikeButtonAndroidXpath(user, content)),
+                AppiumBy.xpath(commentLikeButtonIosXpath(user, content)));
 
         StepUtils.step("Like comment '" + content + "' của " + user + " x" + times, () -> {
             for (int i = 0; i < times; i++) {
@@ -418,7 +513,9 @@ public class ChiTietBaiScr extends BaseScr {
      * ổn định.
      */
     public void openLikeDetail(String user, String content) {
-        By likeBtn = AppiumBy.xpath(commentLikeButtonXpath(user, content));
+        By likeBtn = byPlatform(driver,
+                AppiumBy.xpath(commentLikeButtonAndroidXpath(user, content)),
+                AppiumBy.xpath(commentLikeButtonIosXpath(user, content)));
 
         StepUtils.step("Mở chi tiết lượt like của '" + content + "' của " + user, () -> {
             WebElement btn = WaitUtils.waitForVisible(driver, likeBtn);
@@ -428,29 +525,40 @@ public class ChiTietBaiScr extends BaseScr {
     }
 
     /** Header popup chi tiết lượt like: "Tất cả N" (N thay đổi theo số like). */
-    private final By lblLikeDetailHeader = AppiumBy.xpath(
-            "//XCUIElementTypeStaticText[starts-with(@name,'Tất cả ')]");
+    private final By lblLikeDetailHeader;
 
     /**
      * Nút bỏ like trong popup chi tiết: Image sibling kế header "Tất cả N"
      * (dump tc1_2.xml: cùng parent, x=378 vs StaticText x=16). Không có acc-id
      * nên locate qua following-sibling thay vì xpath theo cấu trúc cố định.
      */
-    private final By btnUnlikeInLikeDetail = AppiumBy.xpath(
-            "//XCUIElementTypeStaticText[starts-with(@name,'Tất cả ')]"
-                    + "/following-sibling::XCUIElementTypeImage[1]");
+    private final By btnUnlikeInLikeDetail;
 
     /** Tap Image bỏ like trong popup chi tiết. Yêu cầu popup đã mở. */
     public void tapUnlikeInLikeDetail() {
         select(btnUnlikeInLikeDetail);
     }
 
-    private static String commentLikeButtonXpath(String user, String content) {
+    private static String commentLikeButtonIosXpath(String user, String content) {
         return "//XCUIElementTypeOther[" +
                 ".//*[@name=" + xQuote(content) + "]" +
                 " and .//XCUIElementTypeStaticText[@name=" + xQuote(user) + "]" +
                 " and ./XCUIElementTypeStaticText[@name='Trả lời']" +
                 "]/XCUIElementTypeImage[last()]";
+    }
+
+    /**
+     * Android cell wrapper giống {@link #commentReplyButtonAndroidXpath} —
+     * lấy ImageView long-clickable cuối trong cell (avatar Image clickable nhưng
+     * không long-clickable; like Image long-clickable=true — dump
+     * XML android Screen locator/ChiTietBaiScr_android.txt line 71/79/86).
+     */
+    private static String commentLikeButtonAndroidXpath(String user, String content) {
+        return "//android.view.View[" +
+                ".//android.view.View[@content-desc=" + xQuote(content) + "]" +
+                " and .//android.view.View[@content-desc=" + xQuote(user) + "]" +
+                " and ./android.view.View[@content-desc='Trả lời']" +
+                "]/android.widget.ImageView[@long-clickable='true'][last()]";
     }
 
     /**
