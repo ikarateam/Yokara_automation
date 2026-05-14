@@ -33,16 +33,22 @@ public class DriverFactory {
      *
      * <p>Thứ tự ưu tiên URL server:
      * <ol>
-     *   <li>{@code -DappiumServer} (CLI override, cao nhất)</li>
-     *   <li>{@code serverUrlParam} (từ suite param {@code suiteAppiumPort}, mô hình 1 server / device)</li>
-     *   <li>{@code appiumServer} trong config.properties (fallback local)</li>
+     *   <li>{@code serverUrlParam} — URL đã được {@code BaseDriver} probe ra (Jenkins
+     *       hoặc local đã match Appium ready). Đường chính.</li>
+     *   <li>{@code -DappiumServer} — CLI escape hatch khi gọi {@code DriverFactory}
+     *       trực tiếp (vd: tool ngoài test runner).</li>
+     *   <li>{@code appiumServer} trong config.properties — fallback cuối cho caller
+     *       không qua {@code BaseDriver}.</li>
      * </ol>
+     *
+     * <p>Đường #1 đảm bảo khi {@code BaseDriver} đã probe thành công, không bị
+     * shadow bởi {@code -DappiumServer} không khớp port thực tế.
      */
     public static AppiumDriver createDriver(String platformParam, String udidParam, String serverUrlParam) {
         try {
             String server = firstNonBlank(
-                    System.getProperty("appiumServer"),
                     serverUrlParam,
+                    System.getProperty("appiumServer"),
                     ConfigManager.get("appiumServer"),
                     ConfigManager.getRequired("appiumServer")
             );

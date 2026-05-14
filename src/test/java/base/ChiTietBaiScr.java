@@ -561,6 +561,136 @@ public class ChiTietBaiScr extends BaseScr {
                 "]/android.widget.ImageView[@long-clickable='true'][last()]";
     }
 
+    /* ================= DELETE COMMENT ================= */
+
+    /**
+     * Tap vào content bubble bên trong cell comment của ({@code user} +
+     * {@code content}) để mở action sheet "Trả lời / Xoá".
+     *
+     * <p>Cell anchor (user + child trực tiếp {@code "Trả lời"}) chỉ dùng để scope
+     * — đích tap là element {@code @name/@content-desc=content} bên trong. Lý do:
+     * tâm cell wrapper có thể rơi vào action row "Trả lời", gây nhầm tap.
+     *
+     * <p>Dump: iOS {@code scripts/xml_dumps/ios/delete_comment.xml};
+     * Android {@code scripts/xml_dumps/ios/PopupXoa.xml} (action sheet sau tap).
+     */
+    public void tapComment(String user, String content) {
+        // Android: dùng accessibilityId trực tiếp — UiAutomator2 crash với XPath
+        // nested 2-axis kiểu `//A[.//B and ./C]//D`. Content text là unique trong
+        // scope test nên không cần anchor by user.
+        // iOS: vẫn scope bằng cell anchor (user + child 'Trả lời') vì WDA xử lý
+        // XPath tốt; đích là element @name=content bên trong cell, tránh tap rơi
+        // vào action row 'Trả lời'.
+        By target = byPlatform(driver,
+                AppiumBy.accessibilityId(content),
+                AppiumBy.xpath(commentContentIosXpath(user, content)));
+        select(target);
+    }
+
+    private static String commentContentIosXpath(String user, String content) {
+        return "//XCUIElementTypeOther[" +
+                ".//XCUIElementTypeStaticText[@name=" + xQuote(user) + "]" +
+                " and ./XCUIElementTypeStaticText[@name='Trả lời']" +
+                "]//*[@name=" + xQuote(content) + "]";
+    }
+
+    /**
+     * "Xoá" trong action sheet hiện ra sau {@link #tapComment}.
+     *
+     * <p>Element type khác platform (iOS Image / Android ImageView) nhưng cùng
+     * acc-id "Xoá". Bắt theo type để phân biệt với StaticText "Trả lời"/"Xoá" của
+     * cell comment hoặc keyboard key "Xóa" (lưu ý dấu — keyboard dùng "Xóa", action
+     * sheet dùng "Xoá").
+     */
+    private final By btnXoaInActionSheet = byPlatform(driver,
+            AppiumBy.xpath("//android.widget.ImageView[@content-desc='Xoá']"),
+            AppiumBy.xpath("//XCUIElementTypeImage[@name='Xoá']"));
+
+    public void tapXoaInActionSheet() {
+        select(btnXoaInActionSheet);
+    }
+
+    /**
+     * Nút Có / Không trong popup "Thông báo — Bạn có chắc chắn muốn xoá …?".
+     *
+     * <p>Cả iOS (XCUIElementTypeButton) và Android (android.widget.Button) đều có
+     * acc-id "Có" / "Không" — dùng {@link AppiumBy#accessibilityId} cross-platform
+     * 1 dòng (không cần byPlatform).
+     */
+    private final By btnKhongInConfirmDelete = AppiumBy.accessibilityId("Không");
+    private final By btnCoInConfirmDelete = AppiumBy.accessibilityId("Có");
+
+    public void tapKhongInConfirmDelete() {
+        click(btnKhongInConfirmDelete);
+    }
+
+    public void tapCoInConfirmDelete() {
+        click(btnCoInConfirmDelete);
+    }
+
+    /**
+     * Đóng action sheet "Trả lời / Xoá" sau khi user chọn "Không" — popup confirm
+     * đã tắt nhưng action sheet vẫn nổi (verified bằng test tay trên cả 2 platform).
+     *
+     * <p>Cả iOS (StaticText) và Android (View) đều expose overlay scrim với
+     * acc-id "Dismiss" full screen.
+     */
+    private final By overlayDismiss = AppiumBy.accessibilityId("Dismiss");
+
+    public void dismissActionSheet() {
+        select(overlayDismiss);
+    }
+
+    /**
+     * Flow xoá 1 comment: tap content → "Xoá" → "Có"/"Không" trong confirm popup.
+     *
+     * @param status {@code "Có"} (xác nhận xoá) hoặc {@code "Không"} (huỷ).
+     *               Chấp nhận không phân biệt hoa/thường và không dấu
+     *               (vd {@code "co"}, {@code "khong"}). Input khác →
+     *               {@link IllegalArgumentException}.
+     */
+    public void deleteComment(String user, String content, String status) {
+        boolean confirmYes = parseDeleteStatus(status);
+
+        StepUtils.step("Ấn vào bình luận '" + content + "' của " + user,
+                () -> tapComment(user, content));
+        StepUtils.step("Chọn Xoá ở action sheet",
+                this::tapXoaInActionSheet);
+        if (confirmYes) {
+            StepUtils.step("Chọn Có ở dialog xác nhận",
+                    this::tapCoInConfirmDelete);
+        } else {
+            StepUtils.step("Chọn Không ở dialog xác nhận",
+                    this::tapKhongInConfirmDelete);
+            // App không tự đóng action sheet sau khi chọn "Không" — phải tap
+            // overlay Dismiss; nếu không các thao tác sau (vd tap comment khác)
+            // sẽ rơi vào sheet còn nổi.
+            StepUtils.step("Đóng action sheet (tap overlay Dismiss)",
+                    this::dismissActionSheet);
+        }
+    }
+
+    private static boolean parseDeleteStatus(String status) {
+        if (status == null) {
+            throw new IllegalArgumentException(
+                    "[deleteComment] status null — chấp nhận 'Có' hoặc 'Không'.");
+        }
+        String norm = java.text.Normalizer.normalize(status.trim(), java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+                .toLowerCase();
+        switch (norm) {
+            case "co":
+            case "yes":
+                return true;
+            case "khong":
+            case "no":
+                return false;
+            default:
+                throw new IllegalArgumentException(
+                        "[deleteComment] status='" + status + "' không hợp lệ — chấp nhận 'Có' / 'Không'.");
+        }
+    }
+
     /**
      * Escape chuỗi để nhúng vào XPath an toàn khi chuỗi có thể chứa cả {@code '} và
      * {@code "}.

@@ -12,7 +12,7 @@ import utils.StepUtils;
 
 public class ChiTietBaiTest extends BaseDriver {
 
-        @Test
+        @Test(description = "Testcase chạy luồng bình luận, trả lời bình luận, like trong chi tiết bài thu")
         public void testCommentBaiThu() {
                 BottomNav bottomNav = new BottomNav(driver);
                 TrangChuScr trangChuScr = new TrangChuScr(driver);
@@ -48,10 +48,16 @@ public class ChiTietBaiTest extends BaseDriver {
                 StepUtils.step("Like thêm 2 lần",
                                 () -> pbt.likeComment(me, content, 2));
 
-                StepUtils.step("Mở chi tiết lượt like bằng hold vào nút like",
+                StepUtils.step("Mở chi tiết lượt like",
                                 () -> pbt.openLikeDetail(me, content));
 
                 StepUtils.step("Bỏ chọn like trong popup chi tiết",
                                 pbt::tapUnlikeInLikeDetail);
+
+                StepUtils.step("[TC_PBT_05] Check xoá bình luận TH chọn Không",
+                                () -> pbt.deleteComment(me, content, "Không"));
+
+                StepUtils.step("[TC_PBT_06] Check xoá bình luận TH chọn Có",
+                                () -> pbt.deleteComment(me, content, "Có"));
         }
 }

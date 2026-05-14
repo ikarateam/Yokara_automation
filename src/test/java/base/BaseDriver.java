@@ -1,5 +1,6 @@
 package base;
 
+import core.AppiumServerProbe;
 import core.ConfigManager;
 import core.DeviceManager;
 import core.DriverFactory;
@@ -264,23 +265,38 @@ public class BaseDriver {
     }
 
     /**
-     * Build URL Appium server từ {@code suiteAppiumPort} (mô hình 1 server / device).
-     * Null nếu không có port → DriverFactory sẽ fallback theo thứ tự ưu tiên (CLI -DappiumServer → config).
+     * Resolve URL Appium server bằng cách probe lần lượt các nguồn:
+     * suite param → {@code -DappiumServer} → config → PM2 fallback (4723/4725).
+     *
+     * <p>Trả URL ready hoặc throw kèm hint — không trả null. Gọi tới DriverFactory
+     * với URL không ready chỉ dẫn đến lỗi mơ hồ ("Could not start a new session"),
+     * nên dồn xử lý 1 chỗ ở đây.
+     *
+     * <p>Vì sao có hardcoded 4723/4725? Đây là default Appium standalone + port
+     * PM2 dev đã từng dùng. Cho phép {@code mvn test} thuần local hoạt động mà
+     * không cần truyền cờ. Jenkins flow vẫn match #1 (suite param trỏ Appium đã
+     * spawn) nên không ảnh hưởng performance.
      */
     private String buildSuiteAppiumUrl(String suiteAppiumPort) {
-        String port = normalizeRaw(suiteAppiumPort);
-        if (port == null) {
-            return null;
+        java.util.List<AppiumServerProbe.Candidate> candidates =
+                AppiumServerProbe.buildDefaultCandidates(
+                        normalizeRaw(suiteAppiumPort),
+                        normalizeRaw(System.getProperty("appiumServer")),
+                        normalizeRaw(ConfigManager.get("appiumServer")));
+
+        String readyUrl = AppiumServerProbe.firstReadyOrNull(candidates, 800, 1200);
+        if (readyUrl != null) {
+            System.out.println("[BaseDriver] Appium ready: " + readyUrl);
+            return readyUrl;
         }
-        try {
-            int p = Integer.parseInt(port);
-            if (p <= 0) {
-                return null;
-            }
-            return "http://127.0.0.1:" + p;
-        } catch (NumberFormatException e) {
-            return null;
-        }
+
+        throw new RuntimeException(
+                "[BaseDriver] Không tìm thấy Appium server ready ở các URL sau:\n"
+                        + AppiumServerProbe.formatCandidatesForLog(candidates)
+                        + "Hint:\n"
+                        + "  • Local: kiểm tra `pm2 ls` hoặc khởi động Appium: `appium --address 127.0.0.1 --port 4723`.\n"
+                        + "  • Jenkins: kiểm tra stage 'SPAWN APPIUM' trong log có dòng `✓ Appium :<port> ready` không.\n"
+                        + "  • Override thủ công: `mvn test -DappiumServer=http://127.0.0.1:<port>`.");
     }
 
     private void attachAllureDeviceLabels(String requestedPlatform, String requestedUdid, String suiteAppiumPort) {
