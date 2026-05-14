@@ -118,9 +118,26 @@ public class AllureListener implements ITestListener {
 
         AllureLifecycle lifecycle = Allure.getLifecycle();
 
+        // TestNG @Test(description="...") được allure-testng map vào trường `name`
+        // (test title) → bị listener này ghi đè bằng displayName. Phải khôi phục
+        // description xuống trường `description`/`descriptionHtml` để Allure UI
+        // hiển thị panel "Description" thay vì rỗng.
+        String testNgDescription = null;
+        try {
+            testNgDescription = result.getMethod().getDescription();
+        } catch (Exception ignored) {
+        }
+        final String descriptionToSet = (testNgDescription != null && !testNgDescription.isBlank())
+                ? testNgDescription.trim()
+                : null;
+
         try {
             lifecycle.updateTestCase(testResult -> {
                 testResult.setName(displayName);
+                if (descriptionToSet != null) {
+                    testResult.setDescription(descriptionToSet);
+                    testResult.setDescriptionHtml(descriptionToSet);
+                }
 
                 upsertLabel(testResult, "platform", platform);
                 upsertLabel(testResult, "device", deviceKey);
