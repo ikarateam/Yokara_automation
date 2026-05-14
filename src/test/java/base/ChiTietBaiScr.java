@@ -569,9 +569,24 @@ public class ChiTietBaiScr extends BaseScr {
      */
     private final By btnUnlikeInLikeDetail;
 
-    /** Tap Image bỏ like trong popup chi tiết. Yêu cầu popup đã mở. */
+    /**
+     * Tap nút/row bỏ like trong popup chi tiết. Yêu cầu popup đã mở.
+     *
+     * <p>iOS: tap Image unlike → popup tự đóng.
+     * Android: tap row user "{user}\n{n}" — popup KHÔNG tự đóng (dump verified)
+     * → ép tap overlay 'Dismiss' để các thao tác sau (vd {@link #tapComment})
+     * không bị popup che.
+     */
     public void tapUnlikeInLikeDetail() {
         select(btnUnlikeInLikeDetail);
+        if (!(driver instanceof IOSDriver)) {
+            try {
+                if (isDisplayed(overlayDismiss)) {
+                    dismissActionSheet();
+                }
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     private static String commentLikeButtonIosXpath(String user, String content) {
