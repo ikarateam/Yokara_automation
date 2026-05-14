@@ -423,18 +423,53 @@ public class ChiTietBaiScr extends BaseScr {
                 AppiumBy.xpath(commentReplyButtonIosXpath(user, content)));
 
         StepUtils.step("Reply comment '" + content + "' của " + user, () -> {
-            WaitUtils.waitForClickable(driver, replyBtn).click();
+            // Sau khi gửi 2+ comment liên tiếp, Flutter iOS có thể để cell "Nllb…"
+            // ở trạng thái ghost (cell wrapper visible nhưng inner widget visible=false
+            // + coords sai). XPath iOS đã thêm @visible='true' để loại ghost; helper
+            // dưới đây ép scroll cell vào view trước, best-effort.
+            ensureCellRendered(content);
+            try {
+                WaitUtils.waitForClickable(driver, replyBtn).click();
+            } catch (Throwable t) {
+                utils.DumpUtils.dumpPageSourceQuietly(driver, "reply_fail");
+                throw t;
+            }
             // sau click sẽ hiện input box trả lời với placeholder "Trả lời @<user>"
-            typeReplyAndSend(reply, user);
+            try {
+                typeReplyAndSend(reply, user);
+            } catch (Throwable t) {
+                utils.DumpUtils.dumpPageSourceQuietly(driver, "reply_compose_fail");
+                throw t;
+            }
         });
+    }
+
+    /**
+     * iOS-only: ép XCUITest scroll list để cell có {@code @label=content} trở
+     * thành visible thực sự (Flutter đôi khi để cell ghost {@code visible="false"}
+     * với coords sai sau khi re-layout). Quiet — fail không throw để caller vẫn
+     * có cơ hội với {@code waitForClickable} kế tiếp.
+     */
+    private void ensureCellRendered(String content) {
+        if (!(driver instanceof IOSDriver)) {
+            return;
+        }
+        try {
+            driver.executeScript("mobile: scroll", java.util.Map.of(
+                    "predicateString", "label == \"" + content.replace("\"", "\\\"") + "\"",
+                    "toVisible", true));
+        } catch (Exception e) {
+            System.out.println("[ChiTietBaiScr] ensureCellRendered('" + content
+                    + "') bỏ qua: " + e.getMessage());
+        }
     }
 
     private static String commentReplyButtonIosXpath(String user, String content) {
         return "//XCUIElementTypeOther[" +
                 ".//*[@name=" + xQuote(content) + "]" +
                 " and .//XCUIElementTypeStaticText[@name=" + xQuote(user) + "]" +
-                " and ./XCUIElementTypeStaticText[@name='Trả lời']" +
-                "]/XCUIElementTypeStaticText[@name='Trả lời']";
+                " and ./XCUIElementTypeStaticText[@name='Trả lời' and @visible='true']" +
+                "]/XCUIElementTypeStaticText[@name='Trả lời' and @visible='true']";
     }
 
     /**
