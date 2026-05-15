@@ -64,8 +64,10 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `home_su_kien_btn` | Nút "Sự kiện" |
 | `home_quanh_day_btn` | Nút "Quanh đây" |
 | `home_mv_noi_bat_section` | Section "MV nổi bật" |
-| `home_mv_noi_bat_item_<mv_id>` | Card MV nổi bật (dynamic, key = mv_id) |
+| `home_mv_noi_bat_xem_them_btn` | **[CẦN BỔ SUNG]** "Xem thêm" của section MV nổi bật |
+| `home_mv_noi_bat_section_loading` | **[CẦN BỔ SUNG]** State loading carousel MV nổi bật |
 | `home_top_right_action_btn` | Action góc trên phải header |
+| `home_header_title_lbl` | **[CẦN BỔ SUNG]** Title "Trang chủ" header (anchor) |
 
 ### 3.3 Trực tuyến — `TrucTuyenScr.java`  (prefix `truc_tuyen`)
 
@@ -85,6 +87,10 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `truc_tuyen_search_submit_btn` | Nút submit search trên keyboard | predicate iOS / IME action |
 | `truc_tuyen_room_item_<room_id>` | Dòng phòng trong kết quả (dynamic) | xpath theo tên phòng |
 | `truc_tuyen_no_room_lbl` | Trạng thái "Không có phòng" | `accessibilityId("Không có phòng")` |
+| `truc_tuyen_search_close_btn` | **[CẦN BỔ SUNG]** Đóng/clear search header |  |
+| `truc_tuyen_de_cu_list_loading` | **[CẦN BỔ SUNG]** State loading list Đề cử |  |
+| `truc_tuyen_de_cu_list_empty` | **[CẦN BỔ SUNG]** State rỗng list Đề cử |  |
+| `truc_tuyen_gan_day_list_empty` | **[CẦN BỔ SUNG]** State rỗng list Gần đây |  |
 
 ### 3.4 Khám phá — `KhamPhaScr.java`  (prefix `kham_pha`)
 
@@ -102,6 +108,10 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `kham_pha_top_bai_thu_xem_them_btn` | "Xem thêm" trong Top bài thu |
 | `kham_pha_top_dai_gia_item_<uid>` | Item user trong Top đại gia (dynamic) |
 | `kham_pha_top_bai_thu_item_<song_id>` | Item bài thu (dynamic) |
+| `kham_pha_top_bai_thu_item_<song_id>_play_ btn` | **[CẦN BỔ SUNG]** Nút Play/Hát trong card bài thu |
+| `kham_pha_top_dai_gia_item_<uid>_follow_btn` | **[CẦN BỔ SUNG]** Nút Theo dõi trong item Top đại gia |
+| `kham_pha_top_dai_gia_section_loading` | **[CẦN BỔ SUNG]** State loading Top đại gia |
+| `kham_pha_top_bai_thu_section_loading` | **[CẦN BỔ SUNG]** State loading Top bài thu |
 
 ### 3.5 Tạo phòng — `TaoPhongScr.java`  (prefix `tao_phong`)
 
@@ -120,6 +130,10 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `tao_phong_password_popup` | Popup nhập mật khẩu (state) | xpath text "mật khẩu" |
 | `tao_phong_password_input` | Ô nhập mật khẩu 4 số | EditText / SecureTextField |
 | `tao_phong_password_xac_nhan_btn` | Nút Xác nhận mật khẩu | `accessibilityId("Xác nhận")` |
+| `tao_phong_ten_phong_edit_dialog` | **[CẦN BỔ SUNG]** Dialog sửa tên phòng (state) |  |
+| `tao_phong_password_error_lbl` | **[CẦN BỔ SUNG]** Thông báo lỗi mật khẩu (sai format / không hợp lệ) |  |
+| `tao_phong_password_huy_btn` | **[CẦN BỔ SUNG]** Nút Huỷ trong popup mật khẩu |  |
+| `tao_phong_ten_phong_huy_btn` | **[CẦN BỔ SUNG]** Nút Huỷ trong dialog sửa tên |  |
 
 ### 3.6 Của tôi (rooms) — `CuaToiScr.java`  (prefix `cua_toi`)
 
@@ -131,6 +145,9 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `cua_toi_room_card_item_<room_id>` | Card phòng (dynamic) | xpath theo tên Talk\n…\nname |
 | `cua_toi_no_room_lbl` | Trạng thái rỗng | `accessibilityId("Không có phòng")` |
 | `cua_toi_search_submit_btn` | Submit search keyboard | predicate / IME |
+| `cua_toi_room_card_item_<room_id>_name_lbl` | **[CẦN BỔ SUNG]** Label tên phòng trong card (anchor đọc giá trị) |  |
+| `cua_toi_room_card_item_<room_id>_thumbnail_img` | **[CẦN BỔ SUNG]** Ảnh thumbnail card phòng |  |
+| `cua_toi_list_loading` | **[CẦN BỔ SUNG]** State loading list phòng |  |
 
 ### 3.7 Phòng (in-room) — `PhongScr.java`  (prefix `phong`)
 
@@ -148,6 +165,22 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `phong_gift_btn` | Tặng quà | `id("...ivGift")` / `accessibilityId("footer_button_gift")` |
 | `phong_leave_btn` | Rời phòng / Kết thúc | xpath text |
 | `phong_leave_confirm_btn` | Xác nhận rời |  |
+| `phong_leave_cancel_btn` | **[CẦN BỔ SUNG]** Huỷ rời phòng trong popup confirm |  |
+| `phong_room_id_lbl` | **[CẦN BỔ SUNG]** Hiển thị room id trong header (anchor) |  |
+| `phong_member_count_lbl` | **[CẦN BỔ SUNG]** Số thành viên trong phòng |  |
+| `phong_member_list_btn` | **[CẦN BỔ SUNG]** Mở danh sách thành viên |  |
+| `phong_member_item_<uid>` | **[CẦN BỔ SUNG]** Item thành viên trong danh sách (dynamic) |  |
+| `phong_chat_send_btn` | **[CẦN BỔ SUNG]** Nút gửi chat (sau khi mở composer) |  |
+| `phong_chat_input_field` | **[CẦN BỔ SUNG]** Ô nhập chat thực tế (khác `phong_chat_input_btn` ở trạng thái mở) |  |
+| `phong_chat_message_item_<msg_id>` | **[CẦN BỔ SUNG]** Message item trong khung chat (dynamic) |  |
+| `phong_gift_popup` | **[CẦN BỔ SUNG]** Popup tặng quà (state) |  |
+| `phong_gift_item_<gift_id>` | **[CẦN BỔ SUNG]** Item quà trong popup (dynamic) |  |
+| `phong_gift_send_btn` | **[CẦN BỔ SUNG]** Nút gửi quà trong popup |  |
+| `phong_gift_close_btn` | **[CẦN BỔ SUNG]** Đóng popup quà |  |
+| `phong_sing_popup` | **[CẦN BỔ SUNG]** Popup chọn bài hát (state) |  |
+| `phong_sing_search_input` | **[CẦN BỔ SUNG]** Ô tìm bài trong popup chọn bài |  |
+| `phong_sing_song_item_<song_id>` | **[CẦN BỔ SUNG]** Item bài trong popup chọn bài (dynamic) |  |
+| `phong_sing_song_item_<song_id>_hat_btn` | **[CẦN BỔ SUNG]** Nút Hát trong item bài |  |
 
 ### 3.8 Thông tin phòng — `ThongTinPhongScr.java`  (prefix `thong_tin_phong`)
 
@@ -166,6 +199,11 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `thong_tin_phong_luu_thong_bao_btn` | Lưu thông báo |
 | `thong_tin_phong_xoa_phong_btn` | Xóa phòng |
 | `thong_tin_phong_xoa_phong_confirm_btn` | Confirm "Có" khi xóa |
+| `thong_tin_phong_xoa_phong_cancel_btn` | **[CẦN BỔ SUNG]** Huỷ xoá ("Không") trong popup confirm |
+| `thong_tin_phong_mat_khau_huy_btn` | **[CẦN BỔ SUNG]** Huỷ đổi mật khẩu |
+| `thong_tin_phong_thong_bao_huy_btn` | **[CẦN BỔ SUNG]** Huỷ đổi thông báo |
+| `thong_tin_phong_mat_khau_hien_thi_lbl` | **[CẦN BỔ SUNG]** Hiển thị mật khẩu hiện tại (masked / value) |
+| `thong_tin_phong_save_success_toast` | **[CẦN BỔ SUNG]** Toast lưu thành công (state) |
 
 ### 3.9 Bảng xếp hạng — `BangXepHangScr.java`  (prefix `bang_xep_hang`)
 
@@ -175,6 +213,14 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `bang_xep_hang_back_btn` | Quay lại |
 | `bang_xep_hang_filter_dropdown` | Bộ lọc theo thời gian (ngày/tuần/tháng) |
 | `bang_xep_hang_user_item_<uid>` | Item user (dynamic) |
+| `bang_xep_hang_filter_ngay_opt` | **[CẦN BỔ SUNG]** Option "Ngày" trong filter |
+| `bang_xep_hang_filter_tuan_opt` | **[CẦN BỔ SUNG]** Option "Tuần" trong filter |
+| `bang_xep_hang_filter_thang_opt` | **[CẦN BỔ SUNG]** Option "Tháng" trong filter |
+| `bang_xep_hang_top1_item` | **[CẦN BỔ SUNG]** Slot top 1 (anchor cho podium) |
+| `bang_xep_hang_top2_item` | **[CẦN BỔ SUNG]** Slot top 2 |
+| `bang_xep_hang_top3_item` | **[CẦN BỔ SUNG]** Slot top 3 |
+| `bang_xep_hang_user_item_<uid>_follow_btn` | **[CẦN BỔ SUNG]** Nút Theo dõi trong row |
+| `bang_xep_hang_empty_lbl` | **[CẦN BỔ SUNG]** State rỗng khi không có dữ liệu BXH |
 
 ### 3.10 Trung tâm nhiệm vụ — `TrungTamNhiemVuScr.java`  (prefix `nhiem_vu`)
 
@@ -184,6 +230,13 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `nhiem_vu_back_btn` | Quay lại |
 | `nhiem_vu_item_<task_id>` | Mục nhiệm vụ (dynamic) |
 | `nhiem_vu_nhan_thuong_btn_<task_id>` | Nút Nhận thưởng theo nhiệm vụ |
+| `nhiem_vu_trung_tam_title_lbl` | **[CẦN BỔ SUNG]** Title "Trung tâm nhiệm vụ" — phân biệt với nút "Nhiệm vụ" tại Trực tuyến |
+| `nhiem_vu_hang_ngay_tab` | **[CẦN BỔ SUNG]** Tab "Hàng ngày" |
+| `nhiem_vu_thanh_tich_tab` | **[CẦN BỔ SUNG]** Tab "Thành tích" |
+| `nhiem_vu_item_<task_id>_status_completed` | **[CẦN BỔ SUNG]** State đã hoàn thành |
+| `nhiem_vu_item_<task_id>_status_locked` | **[CẦN BỔ SUNG]** State chưa mở |
+| `nhiem_vu_reward_received_toast` | **[CẦN BỔ SUNG]** Toast nhận thưởng thành công |
+| `nhiem_vu_empty_lbl` | **[CẦN BỔ SUNG]** State rỗng (không có nhiệm vụ) |
 
 ### 3.11 Hát - Bài hát — `HatScr.java`  (prefix `hat`)
 
@@ -198,6 +251,15 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `hat_search_result_song_item_<song_id>` | Kết quả bài (dynamic) | xpath contains name |
 | `hat_than_tuong_xem_them_btn` | Xem thêm Thần tượng | `accessibilityId("Xem thêm")` |
 | `hat_song_item_<song_id>_play_btn` | Nút "Hát" trong card bài (dynamic) |  |
+| `hat_than_tuong_section` | **[CẦN BỔ SUNG]** Section "Thần tượng" wrapper (anchor scope) |  |
+| `hat_than_tuong_item_<uid>` | **[CẦN BỔ SUNG]** Item thần tượng trong carousel (dynamic) |  |
+| `hat_song_item_<song_id>_name_lbl` | **[CẦN BỔ SUNG]** Tên bài trong card (đọc value) |  |
+| `hat_song_item_<song_id>_singer_lbl` | **[CẦN BỔ SUNG]** Tên ca sĩ trong card |  |
+| `hat_search_back_btn` | **[CẦN BỔ SUNG]** Quay lại khỏi state search |  |
+| `hat_search_clear_btn` | **[CẦN BỔ SUNG]** Clear text trong ô search (×) |  |
+| `hat_search_empty_lbl` | **[CẦN BỔ SUNG]** State không có kết quả |  |
+| `hat_carousel_section_<section_name>` | **[CẦN BỔ SUNG]** Section carousel theo tên (`top_bai_hot`, `moi`, `top_bxh`…) |  |
+| `hat_user_profile_dang_nhap_id_anchor` | **[CẦN BỔ SUNG]** Anchor "Đăng nhập ID" sau khi mở profile từ search (đọc tên user) |  |
 
 ### 3.12 Hát - Song ca — `SongCaScr.java`  (prefix `song_ca`)
 
@@ -207,6 +269,11 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `song_ca_search_input` | Ô tìm bài chờ song ca | `accessibilityId("Tìm kiếm bài hát chờ song ca")` |
 | `song_ca_song_item_<song_id>` | Card bài chờ (dynamic) |  |
 | `song_ca_song_item_<song_id>_join_btn` | Nút "Song ca" trong card |  |
+| `song_ca_song_item_<song_id>_owner_uid_lbl` | **[CẦN BỔ SUNG]** UID/tên chủ bài chờ song ca |  |
+| `song_ca_song_item_<song_id>_song_name_lbl` | **[CẦN BỔ SUNG]** Tên bài trong card chờ |  |
+| `song_ca_search_clear_btn` | **[CẦN BỔ SUNG]** Clear text ô search |  |
+| `song_ca_empty_lbl` | **[CẦN BỔ SUNG]** State không có bài chờ |  |
+| `song_ca_list_loading` | **[CẦN BỔ SUNG]** Loading list bài chờ |  |
 
 ### 3.13 Tin nhắn — `TinNhanScr.java`  (prefix `tin_nhan`)
 
@@ -223,6 +290,10 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `tin_nhan_nguoi_la_row` | Mục Tin nhắn từ người lạ | xpath text |
 | `tin_nhan_chat_item_<uid>` | Cuộc hội thoại với user (dynamic) | xpath contains userName |
 | `tin_nhan_thong_bao_badge_<row>` | Badge số chưa đọc theo row |  |
+| `tin_nhan_chat_item_<uid>_last_msg_lbl` | **[CẦN BỔ SUNG]** Preview message cuối (đọc giá trị) |  |
+| `tin_nhan_chat_item_<uid>_badge` | **[CẦN BỔ SUNG]** Badge số chưa đọc của 1 cuộc hội thoại |  |
+| `tin_nhan_chat_list_empty` | **[CẦN BỔ SUNG]** State không có hội thoại |  |
+| `tin_nhan_chat_list_loading` | **[CẦN BỔ SUNG]** Loading danh sách hội thoại |  |
 
 ### 3.14 Tôi - Guest — `ToiGuestScr.java`  (prefix `toi_guest`)
 
@@ -249,6 +320,13 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `toi_profile_nhiem_vu_btn` | Nhiệm vụ | `accessibilityId("Nhiệm vụ")` |
 | `toi_profile_tac_pham_item_<song_id>` | Item tác phẩm (dynamic) |  |
 | `toi_profile_moi_song_ca_item_<song_id>` | Item mời song ca (dynamic) |  |
+| `toi_profile_tac_pham_empty_lbl` | **[CẦN BỔ SUNG]** State chưa có tác phẩm |  |
+| `toi_profile_moi_song_ca_empty_lbl` | **[CẦN BỔ SUNG]** State chưa có lời mời song ca |  |
+| `toi_profile_tac_pham_count_lbl` | **[CẦN BỔ SUNG]** Tổng số tác phẩm |  |
+| `toi_profile_follow_count_lbl` | **[CẦN BỔ SUNG]** Số người theo dõi |  |
+| `toi_profile_following_count_lbl` | **[CẦN BỔ SUNG]** Số đang theo dõi |  |
+| `toi_profile_username_lbl` | **[CẦN BỔ SUNG]** Tên hiển thị (anchor đọc tên) |  |
+| `toi_profile_copy_uid_btn` | **[CẦN BỔ SUNG]** Nút copy UID (nếu có) |  |
 
 ### 3.16 Cài đặt — `CaiDatScr.java`  (prefix `cai_dat`)
 
@@ -267,6 +345,12 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `cai_dat_huy_tai_khoan_btn` | Huỷ tài khoản | `accessibilityId("Huỷ tài khoản")` |
 | `cai_dat_chuyen_tai_khoan_btn` | Chuyển đổi tài khoản | `accessibilityId("Chuyển đổi tài khoản")` |
 | `cai_dat_dang_xuat_btn` | Đăng xuất | `accessibilityId("Đăng xuất")` |
+| `cai_dat_phien_ban_value_lbl` | **[CẦN BỔ SUNG]** Giá trị version (vd "v3.8.1") — phân biệt với row label |  |
+| `cai_dat_ngon_ngu_value_lbl` | **[CẦN BỔ SUNG]** Giá trị ngôn ngữ hiện tại |  |
+| `cai_dat_don_dep_size_lbl` | **[CẦN BỔ SUNG]** Dung lượng cache hiển thị bên Dọn dẹp |  |
+| `cai_dat_huy_tai_khoan_confirm_popup` | **[CẦN BỔ SUNG]** Popup confirm huỷ tài khoản (state) |  |
+| `cai_dat_huy_tai_khoan_confirm_btn` | **[CẦN BỔ SUNG]** Xác nhận huỷ tài khoản |  |
+| `cai_dat_huy_tai_khoan_cancel_btn` | **[CẦN BỔ SUNG]** Huỷ thao tác huỷ tài khoản |  |
 
 ### 3.17 Popup Đăng xuất — `LogoutPopup.java`  (prefix `logout_popup`)
 
@@ -290,6 +374,9 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `login_method_phone_btn` | Số điện thoại | `accessibilityId("Đăng nhập số điện thoại")` + chain |
 | `login_method_gan_day_section` | Cụm "Gần đây" |  |
 | `login_method_terms_checkbox` | Checkbox điều khoản (nếu có) |  |
+| `login_method_title_lbl` | **[CẦN BỔ SUNG]** Title "Đăng nhập" / hero text "Đăng nhập để tận hưởng…" |  |
+| `login_method_terms_link_btn` | **[CẦN BỔ SUNG]** Link "Điều khoản dịch vụ" / "Chính sách bảo mật" |  |
+| `login_method_gan_day_item_<method>` | **[CẦN BỔ SUNG]** Icon gần đây theo method (`facebook`, `google`, `zalo`, `apple`, `uid`, `phone`) |  |
 
 ### 3.19 Login - Số điện thoại — `LoginPhoneScr.java`  (prefix `login_phone`)
 
@@ -300,6 +387,10 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `login_phone_input` | Ô nhập SĐT | xpath/`accessibilityId(" Nhập số điện thoại")` |
 | `login_phone_next_btn` | Tiếp theo | `accessibilityId("Tiếp theo")` |
 | `login_phone_country_code_dropdown` | Mã vùng (nếu có) |  |
+| `login_phone_title_lbl` | **[CẦN BỔ SUNG]** Title " Nhập số điện thoại" (header) |  |
+| `login_phone_description_lbl` | **[CẦN BỔ SUNG]** "Điền số điện thoại di động của bạn" |  |
+| `login_phone_error_lbl` | **[CẦN BỔ SUNG]** Lỗi định dạng SĐT / SĐT không hợp lệ |  |
+| `login_phone_clear_btn` | **[CẦN BỔ SUNG]** Clear text trong ô SĐT |  |
 
 ### 3.20 Login - OTP — `OtpVerificationScr.java`  (prefix `login_otp`)
 
@@ -312,6 +403,9 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `login_otp_resend_btn` | Gửi lại mã | `accessibilityId("Gửi lại mã")` |
 | `login_otp_error_lbl` | Trạng thái lỗi | xpath contains "Mã kích hoạt không đúng…" |
 | `login_otp_resend_countdown_lbl` | Đếm ngược gửi lại |  |
+| `login_otp_title_lbl` | **[CẦN BỔ SUNG]** Title "Nhập mã OTP" (anchor – phân biệt với input) |  |
+| `login_otp_phone_value_lbl` | **[CẦN BỔ SUNG]** Hiển thị SĐT đang verify (anchor) |  |
+| `login_otp_digit_input_<index>` | **[CẦN BỔ SUNG]** 6 ô digit OTP (nếu PIN-style, index = 0..5) |  |
 
 ### 3.21 Login - UID — `LoginUIDScr.java`  (prefix `login_uid`)
 
@@ -324,6 +418,9 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `login_uid_password_visibility_toggle` | Hiện/ẩn password |  |
 | `login_uid_submit_btn` | Đăng nhập | `accessibilityId("Đăng nhập")` |
 | `login_uid_error_lbl` | Trạng thái lỗi |  |
+| `login_uid_title_lbl` | **[CẦN BỔ SUNG]** Title "Đăng nhập bằng ID" |  |
+| `login_uid_forgot_password_btn` | **[CẦN BỔ SUNG]** Link "Quên mật khẩu" (nếu có) |  |
+| `login_uid_uid_clear_btn` | **[CẦN BỔ SUNG]** Clear ô UID |  |
 
 ### 3.22 Account đã lưu — `AccountScr.java`  (prefix `account_saved`)
 
@@ -332,6 +429,10 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `account_saved_screen_root` | Marker root | xpath contains "ID: " |
 | `account_saved_account_item_<uid>` | Dòng tài khoản đã lưu (dynamic) | xpath contains "ID: <uid>" |
 | `account_saved_dang_nhap_khac_btn` | "Đăng nhập bằng tài khoản khác" | `accessibilityId("Đăng nhập bằng tài khoản khác")` + chuỗi fallback iOS |
+| `account_saved_account_item_<uid>_avatar_img` | **[CẦN BỔ SUNG]** Avatar trong row account |  |
+| `account_saved_account_item_<uid>_name_lbl` | **[CẦN BỔ SUNG]** Tên hiển thị (phân biệt với "ID: <uid>") |  |
+| `account_saved_account_item_<uid>_remove_btn` | **[CẦN BỔ SUNG]** Xoá account khỏi danh sách lưu |  |
+| `account_saved_back_btn` | **[CẦN BỔ SUNG]** Quay lại / Đóng |  |
 
 ### 3.23 Chi tiết bài thu — `ChiTietBaiScr.java`  (prefix `chi_tiet_bai`)
 
@@ -360,6 +461,57 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | `chi_tiet_bai_like_detail_popup` | Popup chi tiết lượt like (state) | xpath starts-with "Tất cả " |
 | `chi_tiet_bai_like_detail_unlike_btn` | Nút bỏ like trong popup | xpath sibling Image |
 | `chi_tiet_bai_like_detail_user_item_<uid>` | User item trong popup like (dynamic) |  |
+| `chi_tiet_bai_comment_action_sheet` | **[CẦN BỔ SUNG]** Action sheet "Trả lời / Xoá" sau tap content (state) | xpath StaticText/ImageView name='Xoá' |
+| `chi_tiet_bai_comment_action_sheet_xoa_btn` | **[CẦN BỔ SUNG]** Nút "Xoá" trong action sheet (phân biệt với keyboard "Xóa") | xpath Image/ImageView @name='Xoá' |
+| `chi_tiet_bai_comment_action_sheet_tra_loi_btn` | **[CẦN BỔ SUNG]** Nút "Trả lời" trong action sheet (phân biệt với `_tra_loi_btn` của comment) |  |
+| `chi_tiet_bai_action_sheet_overlay_dismiss` | **[CẦN BỔ SUNG]** Overlay scrim "Dismiss" đóng action sheet | `accessibilityId("Dismiss")` |
+| `chi_tiet_bai_delete_confirm_popup` | **[CẦN BỔ SUNG]** Popup "Bạn có chắc chắn muốn xoá …?" (state) |  |
+| `chi_tiet_bai_delete_confirm_co_btn` | **[CẦN BỔ SUNG]** Nút "Có" trong popup confirm xoá | `accessibilityId("Có")` |
+| `chi_tiet_bai_delete_confirm_khong_btn` | **[CẦN BỔ SUNG]** Nút "Không" trong popup confirm xoá | `accessibilityId("Không")` |
+| `chi_tiet_bai_player_seek_bar` | **[CẦN BỔ SUNG]** Thanh seek của player |  |
+| `chi_tiet_bai_player_current_time_lbl` | **[CẦN BỔ SUNG]** Thời gian hiện tại của player |  |
+| `chi_tiet_bai_player_duration_lbl` | **[CẦN BỔ SUNG]** Tổng thời lượng bài |  |
+| `chi_tiet_bai_song_name_lbl` | **[CẦN BỔ SUNG]** Tên bài đang phát (anchor đọc) |  |
+| `chi_tiet_bai_owner_name_lbl` | **[CẦN BỔ SUNG]** Tên chủ bài thu |  |
+| `chi_tiet_bai_partner_name_lbl` | **[CẦN BỔ SUNG]** Tên partner (chỉ duet) |  |
+| `chi_tiet_bai_gift_btn` | **[CẦN BỔ SUNG]** Nút tặng quà trong khung player |  |
+| `chi_tiet_bai_share_btn` | **[CẦN BỔ SUNG]** Nút share (nếu có) |  |
+| `chi_tiet_bai_more_btn` | **[CẦN BỔ SUNG]** Nút menu more (...) trong player |  |
+
+### 3.24 Bottom Nav Badge (Hát, Tin nhắn) — `BottomNav.java`  (prefix `bottom_nav`)
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `bottom_nav_hat_badge_lbl` | **[CẦN BỔ SUNG]** Badge số trên tab Hát (chỉ hiển thị khi có item mới) | xpath sibling Android/iOS |
+| `bottom_nav_tin_nhan_badge_lbl` | **[CẦN BỔ SUNG]** Badge số trên tab Tin nhắn | xpath sibling Android/iOS |
+| `bottom_nav_trang_chu_selected_status` | **[CẦN BỔ SUNG]** State tab Trang chủ đang chọn |  |
+| `bottom_nav_truc_tuyen_selected_status` | **[CẦN BỔ SUNG]** State tab Trực tuyến đang chọn |  |
+| `bottom_nav_hat_selected_status` | **[CẦN BỔ SUNG]** State tab Hát đang chọn |  |
+| `bottom_nav_tin_nhan_selected_status` | **[CẦN BỔ SUNG]** State tab Tin nhắn đang chọn |  |
+| `bottom_nav_toi_selected_status` | **[CẦN BỔ SUNG]** State tab Tôi đang chọn |  |
+
+### 3.25 Popup khởi động (startup popups) — handled in `BottomNav.handleStartupPopups()`  (prefix `startup_popup`)
+
+> Hiện `BottomNav` đang `handleStartupPopups()` mò popup chung — chưa có id rõ ràng. Cần dev tách identifier cho từng popup để test không phải đoán XPath.
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| `startup_popup_event_root` | **[CẦN BỔ SUNG]** Popup banner sự kiện sau khi mở app |  |
+| `startup_popup_event_close_btn` | **[CẦN BỔ SUNG]** Đóng popup event |  |
+| `startup_popup_update_root` | **[CẦN BỔ SUNG]** Popup cập nhật app |  |
+| `startup_popup_update_later_btn` | **[CẦN BỔ SUNG]** "Để sau" |  |
+| `startup_popup_update_now_btn` | **[CẦN BỔ SUNG]** "Cập nhật ngay" |  |
+| `startup_popup_permission_root` | **[CẦN BỔ SUNG]** Popup xin quyền (mic, notification…) |  |
+| `startup_popup_permission_allow_btn` | **[CẦN BỔ SUNG]** Cho phép quyền |  |
+| `startup_popup_permission_deny_btn` | **[CẦN BỔ SUNG]** Từ chối quyền |  |
+
+### 3.26 Native account picker (Google / Facebook) — `FbGoogleAccountScr.java`
+
+> ⚠️ **Ngoài tầm Flutter**. Đây là chooser hệ thống do Google Play Services / Facebook app render — KHÔNG thể bọc `Semantics(identifier:)` từ phía Yokara. Vẫn giữ xpath system resource-id (`com.google.android.gms:id/account_name`, `com.facebook.katana:id/account_name`). Catalogue chỉ liệt kê để tránh dev hiểu nhầm là quên gắn id.
+
+| automationId | Mô tả | Hiện trạng |
+|---|---|---|
+| _(không áp dụng — system UI)_ | Account row đầu tiên | xpath theo resource-id system |
 
 ## 4. Quy ước đặt id mới (khi gặp màn/element chưa có trong catalogue)
 
@@ -401,3 +553,4 @@ private final By btnTaoPhong = AppiumBy.accessibilityId("truc_tuyen_tao_phong_bt
 | Ngày | Thay đổi | Người |
 |---|---|---|
 | 2026-05-13 | Tạo catalogue lần đầu, phủ 23 màn hình theo Page Object hiện có. | NgocLB |
+| 2026-05-15 | Bổ sung loạt `automationId` còn thiếu (đánh dấu **[CẦN BỔ SUNG]**) trên 18 màn hình: states (loading/empty/error/selected), action sheet & confirm popup Xoá comment ở Chi tiết bài, popup tặng quà / chọn bài ở Phòng, badge & state selected của BottomNav, popup khởi động (event/update/permission), labels phân biệt với input (title/value), nút huỷ trong các confirm popup, nút clear trong các input search/SĐT/UID. Thêm §3.24 Bottom Nav Badge, §3.25 Startup Popups, §3.26 Native account picker (FB/Google — system UI, ngoài tầm Flutter). | NgocLB |

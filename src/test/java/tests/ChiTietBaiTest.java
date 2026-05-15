@@ -26,7 +26,8 @@ public class ChiTietBaiTest extends BaseDriver {
                 ChiTietBaiScr pbt = StepUtils.step("Mở MV bất kì ở phần 'MV nổi bật'",
                                 trangChu::openRandomMvNoiBat);
 
-                StepUtils.step("Gửi bình luận '" + content + "'", () -> pbt.sendComment(content));
+                StepUtils.step("[TC_PBT_02] Gửi bình luận bậc 1'" + content + "'vào bài thu",
+                                () -> pbt.sendComment(content));
                 StepUtils.step("Xác nhận bình luận '" + content + "' đã hiển thị",
                                 () -> Assert.assertTrue(pbt.isCommentDisplayed(content),
                                                 "Không thấy bình luận '" + content + "' trong list"));
@@ -37,12 +38,12 @@ public class ChiTietBaiTest extends BaseDriver {
                                 () -> Assert.assertTrue(pbt.isCommentDisplayed(suggestionSent),
                                                 "Không thấy bình luận \"" + suggestionSent + "\" trong list"));
 
-                StepUtils.step("Trả lời bình luận của chính bản thân",
+                StepUtils.step("[TC_PBT_03] Trả lời bình luận bậc 1 của chính bản thân",
                                 () -> pbt.replyComment("Lê Minh Hô", "Nllb binh luan", "reply comment"));
 
                 String me = "Lê Minh Hô";
 
-                StepUtils.step("Like bình luận của bản thân '" + content + "'",
+                StepUtils.step("[TC_PBT_04] Like bình luận bài thu: Like bình luận của bản thân '" + content + "'",
                                 () -> pbt.likeComment(me, content, 1));
 
                 StepUtils.step("Like thêm 2 lần",
