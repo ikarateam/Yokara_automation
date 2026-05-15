@@ -454,13 +454,52 @@ public class ChiTietBaiScr extends BaseScr {
         if (!(driver instanceof IOSDriver)) {
             return;
         }
+        // 1) mobile:scroll toVisible — XCUITest native API, fast nếu có scrollable parent.
         try {
             driver.executeScript("mobile: scroll", java.util.Map.of(
                     "predicateString", "label == \"" + content.replace("\"", "\\\"") + "\"",
                     "toVisible", true));
+            return;
         } catch (Exception e) {
-            System.out.println("[ChiTietBaiScr] ensureCellRendered('" + content
-                    + "') bỏ qua: " + e.getMessage());
+            System.out.println("[ChiTietBaiScr] mobile:scroll fail, fallback swipe wiggle: "
+                    + e.getMessage());
+        }
+        // 2) Fallback: wiggle small swipe up-then-down. Flutter iOS thường để cell vừa
+        //    insert ở trạng thái ghost (visible=false + coords sai trong (16, 0)…) nếu
+        //    chưa được chạm vào sau khi list re-layout. 1 cặp swipe nhỏ ép renderer
+        //    commit layout mà gần như không dịch vị trí cell.
+        nudgeListWiggle();
+    }
+
+    /**
+     * Swipe nhỏ up rồi down (60px) để force Flutter relayout list mà không đổi vị
+     * trí scroll cuối. Cũng dùng được cho mọi list bị ghost cell tương tự.
+     */
+    private void nudgeListWiggle() {
+        try {
+            org.openqa.selenium.Dimension size = driver.manage().window().getSize();
+            int x = size.getWidth() / 2;
+            int yMid = (int) (size.getHeight() * 0.55);
+            int dy = 60;
+
+            org.openqa.selenium.interactions.PointerInput finger =
+                    new org.openqa.selenium.interactions.PointerInput(
+                            org.openqa.selenium.interactions.PointerInput.Kind.TOUCH, "finger");
+            org.openqa.selenium.interactions.Sequence seq =
+                    new org.openqa.selenium.interactions.Sequence(finger, 1);
+            seq.addAction(finger.createPointerMove(java.time.Duration.ZERO,
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), x, yMid));
+            seq.addAction(finger.createPointerDown(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            seq.addAction(finger.createPointerMove(java.time.Duration.ofMillis(200),
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), x, yMid - dy));
+            seq.addAction(finger.createPointerMove(java.time.Duration.ofMillis(200),
+                    org.openqa.selenium.interactions.PointerInput.Origin.viewport(), x, yMid));
+            seq.addAction(finger.createPointerUp(
+                    org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT.asArg()));
+            driver.perform(java.util.Collections.singletonList(seq));
+        } catch (Exception e) {
+            System.out.println("[ChiTietBaiScr] nudgeListWiggle bỏ qua: " + e.getMessage());
         }
     }
 
