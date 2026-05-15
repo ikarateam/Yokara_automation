@@ -7,6 +7,7 @@ import io.qameta.allure.Allure;
 import io.qameta.allure.AllureLifecycle;
 import io.qameta.allure.model.Parameter;
 import io.qameta.allure.model.Label;
+import org.testng.IConfigurationListener;
 import org.testng.ITestContext;
 import org.testng.ITestListener;
 import org.testng.ITestResult;
@@ -15,7 +16,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
 
-public class AllureListener implements ITestListener {
+public class AllureListener implements ITestListener, IConfigurationListener {
 
     private static final ThreadLocal<Boolean> METADATA_ATTACHED = ThreadLocal.withInitial(() -> false);
 
@@ -71,6 +72,28 @@ public class AllureListener implements ITestListener {
     @Override
     public void onTestFailedWithTimeout(ITestResult result) {
         onTestFailure(result);
+    }
+
+    // ============================================================
+    // IConfigurationListener — @BeforeMethod / @AfterMethod
+    // ============================================================
+    //
+    // allure-testng adapter emit result.json riêng cho config method khi nó
+    // fail/skip — KHÔNG fire qua ITestListener hooks (chỉ qua IConfigurationListener).
+    // Không xử lý ở đây thì labels parentSuite/suite của setup-broken entry sẽ
+    // giữ default từ TestNG <suite name>/<test name> → tạo nhánh riêng trong
+    // Allure tree không khớp với nhánh device thật. Áp cùng metadata để gộp.
+
+    @Override
+    public void onConfigurationFailure(ITestResult result) {
+        METADATA_ATTACHED.set(false);
+        attachExecutionMetadata(result);
+    }
+
+    @Override
+    public void onConfigurationSkip(ITestResult result) {
+        METADATA_ATTACHED.set(false);
+        attachExecutionMetadata(result);
     }
 
     private void attachExecutionMetadata(ITestResult result) {
