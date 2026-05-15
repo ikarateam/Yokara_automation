@@ -5,14 +5,6 @@ pipeline {
         cron('0 7 * * *')
     }
 
-    parameters {
-        choice(
-            name: 'APP_ENV',
-            choices: ['prod', 'dev'],
-            description: 'Môi trường app cần test — prod: com.yokara / com.yokara.v3; dev: com.dev.yokara / com.yokara.dev.v1'
-        )
-    }
-
     options {
         skipDefaultCheckout(true)
         disableConcurrentBuilds()
@@ -22,6 +14,10 @@ pipeline {
     }
 
     environment {
+        // App env: 'prod' hoặc 'dev'. Sửa tay tại đây khi cần switch build —
+        // prod: bundle com.yokara / com.yokara.v3; dev: com.dev.yokara / com.yokara.dev.v1
+        APP_ENV = 'prod'
+
         USER_HOME = '/Users/inmobi'
 
         // JAVA 17
