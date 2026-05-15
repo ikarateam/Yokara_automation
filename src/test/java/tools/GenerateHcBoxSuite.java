@@ -46,7 +46,11 @@ public final class GenerateHcBoxSuite {
         sb.append("<!-- Auto-generated bởi tools.GenerateHcBoxSuite (process-test-classes).\n");
         sb.append("     KHÔNG sửa tay — sẽ bị overwrite mỗi lần `mvn test`.\n");
         sb.append("     1 <test> / device USB được detect; không cắm device = không có block. -->\n");
-        sb.append("<suite name=\"Yokara Multi-Device\" parallel=\"tests\" thread-count=\"")
+        // Suite name = "Devices" để khớp với parentSuite label do
+        // AllureListener.attachExecutionMetadata gắn — Allure tree chỉ có 1 nhánh
+        // tổ "Devices" thay vì 2 (khi allure-testng adapter set parentSuite từ
+        // TestNG suite name win race condition với AllureListener override).
+        sb.append("<suite name=\"Devices\" parallel=\"tests\" thread-count=\"")
                 .append(n).append("\">\n\n");
         sb.append("    <!-- AllureTestNg: SPI allure-testng — tránh khai báo trùng trong suite -->\n");
         sb.append("    <listeners>\n");
