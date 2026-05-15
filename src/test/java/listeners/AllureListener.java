@@ -173,6 +173,10 @@ public class AllureListener implements ITestListener, IConfigurationListener {
                 upsertLabel(testResult, "subSuite", "Appium Port " + firstNonBlank(appiumPort, "unknown"));
                 upsertLabel(testResult, "device.branch", branchName);
                 upsertLabel(testResult, "device.platform", platform);
+                String deviceName = resolveDeviceName(result, platform);
+                if (deviceName != null && !deviceName.isBlank()) {
+                    upsertLabel(testResult, "device.name", deviceName);
+                }
                 if (udid != null && !udid.isBlank()) {
                     upsertLabel(testResult, "device.udid", udid);
                 }
@@ -312,6 +316,68 @@ public class AllureListener implements ITestListener, IConfigurationListener {
 
         String shortUdid = udid.length() > 8 ? udid.substring(udid.length() - 8) : udid;
         return platform + "-" + shortUdid;
+    }
+
+    /**
+     * Tên device để hiển thị (Allure label "device.name"). Thứ tự:
+     * <ol>
+     *   <li>{@code appium:deviceModel} / {@code appium:deviceName} từ driver capabilities
+     *       (nếu driver init OK).</li>
+     *   <li>Parse từ TestNG {@code <test name>} dạng
+     *       {@code <platform>-<platform>_<DeviceName_Sanitized>_<longUdid>-<shortUdid>}
+     *       — fallback cho case @BeforeMethod fail trước khi driver init xong.</li>
+     * </ol>
+     * Trả null nếu cả 2 đều không lấy được.
+     */
+    private String resolveDeviceName(ITestResult result, String platform) {
+        // 1) Driver capabilities (chỉ có khi setup OK).
+        try {
+            io.appium.java_client.AppiumDriver d = base.BaseDriver.getDriver();
+            if (d != null) {
+                for (String key : new String[]{"appium:deviceModel", "appium:deviceName"}) {
+                    Object v = d.getCapabilities().getCapability(key);
+                    if (v != null && !v.toString().isBlank()) {
+                        return v.toString().trim();
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        // 2) Parse TestNG xml test name. Format từ AutomationDeviceSlot.testNgTestName():
+        //    `<platform>-<platform>_<NAME>_<long_udid>-<short_udid>` (sau khi sanitize).
+        try {
+            String xmlTestName = result.getTestContext().getCurrentXmlTest().getName();
+            return parseDeviceNameFromTestNg(xmlTestName, platform);
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    public static String parseDeviceNameFromTestNg(String xmlTestName, String platform) {
+        if (xmlTestName == null || xmlTestName.isBlank() || platform == null) {
+            return null;
+        }
+        String prefix = platform + "-" + platform + "_";
+        if (!xmlTestName.startsWith(prefix)) {
+            return null;
+        }
+        String middle = xmlTestName.substring(prefix.length());
+        // Strip trailing -<shortUdid>
+        int lastDash = middle.lastIndexOf('-');
+        if (lastDash > 0) {
+            middle = middle.substring(0, lastDash);
+        }
+        // Strip trailing _<longUdid> — iOS hex, Android alphanumeric serial.
+        int lastUnder = middle.lastIndexOf('_');
+        if (lastUnder > 0) {
+            String tail = middle.substring(lastUnder + 1);
+            if (tail.matches("[0-9A-Za-z]{8,}")) {
+                middle = middle.substring(0, lastUnder);
+            }
+        }
+        String name = middle.replace('_', ' ').trim();
+        return name.isEmpty() ? null : name;
     }
 
     private static String portFromUrl(String url) {

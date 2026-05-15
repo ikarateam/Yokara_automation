@@ -199,6 +199,14 @@ def overall_from_devices(devices):
     return out
 
 
+def header_emoji(stats):
+    if stats["total"] == 0:
+        return "⚠️"
+    if stats["failed"] or stats["broken"]:
+        return "🚨"
+    return "✅"
+
+
 def fmt_stats_line(stats):
     return (
         f"Total: {stats['total']} | "
@@ -211,12 +219,18 @@ def fmt_stats_line(stats):
 
 
 def build_message(overall, devices, build_number, base_url):
-    """Tối giản: 1 dòng overall, 1 dòng / device, link Allure cuối."""
-    lines = [f"Build #{build_number} - {fmt_stats_line(overall)}"]
+    """Header emoji + Build, overall, mỗi device 1 dòng (name tuỳ chọn),
+    link Allure cuối."""
+    lines = [
+        f"{header_emoji(overall)} Build #{build_number}",
+        fmt_stats_line(overall),
+    ]
     for d in devices:
-        lines.append(
-            f"{d['platform']} - {d['name']} - {d['udid']} - {fmt_stats_line(d['stats'])}"
-        )
+        prefix = d["platform"]
+        name = d.get("name")
+        if name and name != "?":
+            prefix = f"{prefix} - {name}"
+        lines.append(f"{prefix} - {fmt_stats_line(d['stats'])}")
     lines.append(f"{base_url}/allure/")
     return "\n".join(lines)
 
