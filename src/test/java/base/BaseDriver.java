@@ -115,6 +115,7 @@ public class BaseDriver {
         auth = new AuthFlow(driver);
 
         new BaseScr(driver).handleStartupPopups();
+        new OnboardingScr(driver).skipIfPresent();
         handleLaunchBannerIfPresent();
         ensureMainTabBarVisible();
     }
