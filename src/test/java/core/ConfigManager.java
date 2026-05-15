@@ -25,6 +25,7 @@ public final class ConfigManager {
     static {
         ENV_ALIAS_TO_KEY.put("APPIUM_SERVER", "appiumServer");
         ENV_ALIAS_TO_KEY.put("PLATFORM", "platform");
+        ENV_ALIAS_TO_KEY.put("APP_ENV", "app.env");
 
         // Android
         ENV_ALIAS_TO_KEY.put("ANDROID_UDID", "android.udid");
@@ -137,6 +138,39 @@ public final class ConfigManager {
             throw new IllegalArgumentException("Missing required config key: " + key);
         }
 
+        return value;
+    }
+
+    /**
+     * Resolve key theo môi trường {@code app.env} (mặc định {@code prod}).
+     *
+     * <p>Thử {@code <key>.<env>} trước (vd {@code ios.bundleId.dev}); fallback
+     * về key gốc {@code <key>} cho backward compat. Trả null nếu cả 2 đều thiếu.
+     *
+     * <p>Override env qua: {@code -Dapp.env=dev} (CLI), env var
+     * {@code APP_ENV=dev} hoặc {@code YOKARA_APP_ENV=dev}, hoặc
+     * {@code app.env=dev} trong config.properties.
+     */
+    public static String resolveByEnv(String baseKey) {
+        String env = get("app.env", "prod").trim().toLowerCase();
+        String envSpecific = get(baseKey + "." + env);
+        if (envSpecific != null && !envSpecific.isBlank()) {
+            return envSpecific;
+        }
+        return get(baseKey);
+    }
+
+    /**
+     * Như {@link #resolveByEnv} nhưng throw nếu cả env-specific và base đều
+     * không có giá trị.
+     */
+    public static String resolveByEnvRequired(String baseKey) {
+        String value = resolveByEnv(baseKey);
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Missing required config key: " + baseKey
+                            + " (env=" + get("app.env", "prod") + ")");
+        }
         return value;
     }
 }

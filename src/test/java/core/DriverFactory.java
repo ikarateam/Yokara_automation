@@ -102,8 +102,8 @@ public class DriverFactory {
         options.setPlatformName("Android");
         options.setDeviceName(deviceName);
         options.setUdid(udid);
-        options.setAppPackage(ConfigManager.getRequired("android.appPackage"));
-        options.setAppActivity(ConfigManager.getRequired("android.appActivity"));
+        options.setAppPackage(ConfigManager.resolveByEnvRequired("android.appPackage"));
+        options.setAppActivity(ConfigManager.resolveByEnvRequired("android.appActivity"));
         options.setNoReset(true);
 
         // Ổn định trên Android 13/14
@@ -275,7 +275,7 @@ public class DriverFactory {
             }
             System.out.println("[DriverFactory] ios.app không hợp lệ hoặc chưa build: " + app);
         }
-        options.setBundleId(ConfigManager.getRequired("ios.bundleId"));
+        options.setBundleId(ConfigManager.resolveByEnvRequired("ios.bundleId"));
     }
 
     private static String expandUserHome(String path) {

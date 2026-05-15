@@ -145,13 +145,13 @@ public class BaseDriver {
         return "unknown";
     }
 
-    /** iOS: bundleId AUT. Android: applicationId (package). */
+    /** iOS: bundleId AUT. Android: applicationId (package). Theo env app.env. */
     private String primaryAppIdForPlatform() {
         if (driver instanceof IOSDriver) {
-            return ConfigManager.getRequired("ios.bundleId");
+            return ConfigManager.resolveByEnvRequired("ios.bundleId");
         }
         if (driver instanceof AndroidDriver) {
-            return ConfigManager.getRequired("android.appPackage");
+            return ConfigManager.resolveByEnvRequired("android.appPackage");
         }
         return null;
     }

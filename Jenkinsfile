@@ -5,6 +5,14 @@ pipeline {
         cron('0 7 * * *')
     }
 
+    parameters {
+        choice(
+            name: 'APP_ENV',
+            choices: ['prod', 'dev'],
+            description: 'Môi trường app cần test — prod: com.yokara / com.yokara.v3; dev: com.dev.yokara / com.yokara.dev.v1'
+        )
+    }
+
     options {
         skipDefaultCheckout(true)
         disableConcurrentBuilds()
@@ -118,6 +126,10 @@ pipeline {
                         adb version || true
                         allure --version || true
 
+                        echo "===== APP ENV ====="
+                        echo "APP_ENV=${APP_ENV}"
+                        echo "(ConfigManager.resolveByEnv sẽ pick bundle theo env này)"
+
                         echo "===== APPIUM ====="
 
                         appium driver list --installed || true
@@ -228,7 +240,8 @@ pipeline {
                         mvn surefire:test \
                           -DsuiteXmlFile=testng-multidevice.xml \
                           -Dappium.basePort=$APPIUM_BASE_PORT \
-                          -Dappium.portStep=$PORT_STEP
+                          -Dappium.portStep=$PORT_STEP \
+                          -Dapp.env=${APP_ENV}
 
                         TEST_EXIT=$?
 
