@@ -221,22 +221,53 @@ public class BaseScr {
     /* ================= STARTUP POPUPS ================= */
 
     /**
-     * Xử lý các popup hệ thống hoặc Welcome khi vừa mở app (EULA, Permission, v.v.)
+     * Xử lý các popup hệ thống / Welcome khi vừa mở app (notifications,
+     * tracking, location, EULA, v.v.).
+     *
+     * <p>3 vòng retry, mỗi vòng:
+     * <ul>
+     *   <li>iOS: thử {@code mobile: alert(action=accept)} — system alert nằm
+     *       ngoài page-source mặc định, xpath bên dưới không bắt được.</li>
+     *   <li>In-app dialog có nút text "Đồng ý / Cho phép / Allow / AGREE":
+     *       xpath cross-platform (Android {@code @text}, iOS {@code @name/@label}).</li>
+     * </ul>
+     * Lặp tới khi 1 vòng không bắt được popup nào → return. Cho phép app có
+     * nhiều popup tuần tự (vd notifications → tracking → location).
      */
     public void handleStartupPopups() {
-        try {
-            // Danh sách các text nút thường gặp trong pop-up
-            By btnCommon = AppiumBy.xpath(
-                    "//*[contains(@text, 'Đồng ý') or contains(@name, 'Đồng ý') or contains(@label, 'Đồng ý')"
-                            + " or contains(@text, 'Cho phép') or contains(@name, 'Cho phép') or contains(@label, 'Cho phép')"
-                            + " or contains(@text, 'Allow') or contains(@name, 'Allow') or contains(@label, 'Allow')"
-                            + " or contains(@text, 'AGREE') or contains(@name, 'AGREE')]"
-            );
-            if (isDisplayed(btnCommon)) {
-                click(btnCommon);
+        By btnCommon = AppiumBy.xpath(
+                "//*[contains(@text, 'Đồng ý') or contains(@name, 'Đồng ý') or contains(@label, 'Đồng ý')"
+                        + " or contains(@text, 'Cho phép') or contains(@name, 'Cho phép') or contains(@label, 'Cho phép')"
+                        + " or contains(@text, 'Allow') or contains(@name, 'Allow') or contains(@label, 'Allow')"
+                        + " or contains(@text, 'AGREE') or contains(@name, 'AGREE')]"
+        );
+
+        for (int attempt = 0; attempt < 3; attempt++) {
+            boolean handled = false;
+
+            // 1) iOS native alert (UIAlertController) — không có trong page-source thường.
+            if (driver instanceof IOSDriver) {
+                try {
+                    driver.executeScript("mobile: alert", Map.of("action", "accept"));
+                    handled = true;
+                } catch (Exception ignored) {
+                    // Không có alert nào đang mở.
+                }
             }
-        } catch (Exception e) {
-            // Bỏ qua nếu không thấy hoặc lỗi
+
+            // 2) In-app dialog (kể cả Android runtime permission). Polling ngắn 1s
+            //    để bắt popup xuất hiện chậm hơn launch nhưng không kéo dài flow.
+            try {
+                if (utils.WaitUtils.isVisibleWithin(driver, btnCommon, 1)) {
+                    click(btnCommon);
+                    handled = true;
+                }
+            } catch (Exception ignored) {
+            }
+
+            if (!handled) {
+                return;
+            }
         }
     }
 
